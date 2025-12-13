@@ -1,0 +1,142 @@
+# Claude AI Assistant Instructions
+
+This file contains instructions for Claude when working on this codebase.
+
+## Project Overview
+
+Vibe is a domain-specific language for AI agent orchestration, with a TypeScript runtime.
+
+## Project Structure
+```
+src/
+  tokens.ts    - Token types and keywords
+  lexer.ts     - Tokenizer
+  ast.ts       - AST node definitions
+  parser.ts    - Recursive descent parser
+  runtime.ts   - Execution engine with context/call stack tracking
+  index.ts     - Entry point
+```
+
+## Build Commands
+```bash
+bun run start              # Run the CLI
+bun run dev                # Watch mode
+bun run src/index.ts <file.vibe>  # Run a vibe program
+bun test                   # Run tests
+```
+
+---
+
+## TypeScript Runtime Coding Standards
+
+These rules apply when writing the TypeScript code that implements the Vibe runtime.
+
+### Functional Programming Principles
+- **Prefer Pure Functions**: No side effects, same input = same output
+- **Use Immutable Patterns**: Array spread syntax, avoid mutations
+- **Function Composition**: Break complex operations into smaller, composable functions
+
+### Array Methods - Always Prefer Functional Approach
+1. **`map`** - Transform each element
+2. **`filter`** - Select elements matching criteria
+3. **`flatMap`** - Transform and flatten (prefer over map + flat)
+4. **`reduce`** - Accumulate to single value
+5. **`find`** - Get first matching element
+6. **`some`/`every`** - Boolean checks
+7. **`forEach`** - Only when side effects are necessary
+
+```typescript
+// Good - Functional approach
+const errors = items.flatMap(item => validateItem(item))
+const names = users.map(user => user.name)
+return [...selectErrors, ...duplicateErrors]
+
+// Bad - Imperative loops
+const errors = []
+items.forEach(item => {
+  const itemErrors = validateItem(item)
+  errors.push(...itemErrors)
+})
+```
+
+### Modern JavaScript/TypeScript Patterns
+- **Optional Chaining**: `obj?.prop?.method?.()`
+- **Nullish Coalescing**: `value ?? defaultValue`
+- **Array Spread**: `[...array1, ...array2]`
+- **Object Destructuring**: `const { name, value } = obj`
+- **Early Returns**: Reduce nesting, improve readability
+
+```typescript
+// Good patterns
+b.fields?.forEach(field => processField(field))
+const blocks = fieldToBlocks.get(field) ?? []
+const { fields, fieldToBlocks } = getAvailableFields(block)
+```
+
+### Function Declaration Style
+- **Prefer Function Declarations**: Use `function foo() {}` over `const foo = () => {}`
+- **Benefits**: Hoisting, clearer intent, better debugging, consistent style
+- **Exception**: Use arrow functions for callbacks, array methods, and inline functions
+
+```typescript
+// Good - Function declarations for named functions
+function validateFields(block: CTEBlock): string[] {
+   return block.def.select?.flatMap(item => validateItem(item)) ?? []
+}
+
+// Good - Arrow functions for callbacks and array methods
+const errors = items.flatMap(item => validateItem(item))
+
+// Bad - Arrow function variables for named functions
+const validateFields = (block: CTEBlock): string[] => {
+   return block.def.select?.flatMap(item => validateItem(item)) ?? []
+}
+```
+
+### Function Design Rules
+- **Single Responsibility**: Each function does one thing well
+- **Extract Helper Functions**: Move complex logic to well-named pure functions
+- **Use Type Guards**: Narrow types with proper checks
+- **Declarative over Imperative**: Show intent, not implementation steps
+
+### Error Handling
+- **Functional Error Collection**: Use `flatMap` to collect errors
+- **Early Returns**: Exit early from invalid states
+- **Pure Error Functions**: Return error arrays, don't throw when possible
+
+### Performance Guidelines
+- Use `Set` for uniqueness checks
+- Use `Map` for key-value relationships
+- Prefer `flatMap` over `map().flat()`
+- Use appropriate data structures for the use case
+
+### Async Operations in Loops
+
+Use traditional `for` loops for sequential async operations:
+
+```typescript
+// Good - Sequential async operations
+for (const item of items) {
+  await processItemAsync(item)
+}
+
+// Bad - forEach with async doesn't wait
+items.forEach(async item => {
+  await processItemAsync(item)
+})
+```
+
+Use `Promise.all()` for parallel async operations:
+
+```typescript
+const results = await Promise.all(
+  items.map(async item => await processItemAsync(item))
+)
+```
+
+### When to Break These Rules
+- Performance-critical code (document why)
+- Third-party library integration requirements
+- Async operations requiring sequential execution (use traditional for loops)
+
+Remember: The goal is readable, maintainable, and correct code.

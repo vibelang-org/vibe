@@ -1,0 +1,24 @@
+// Test simplified vibe syntax
+
+// Simple variable assignment
+let x = "hello"
+const y = "world"
+
+// Function that returns a string
+function greet(name) {
+  return "Hello, {name}!"
+}
+
+// Call function
+let msg = greet("Vibe")
+
+// AI task with do
+let answer = do "what is the meaning of life?"
+
+// Conditional with truthy string
+if msg {
+  let inner = do "explain {msg}"
+}
+
+// Return final value
+msg

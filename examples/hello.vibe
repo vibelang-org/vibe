@@ -1,0 +1,13 @@
+// Simple Vibe example
+
+let greeting = "Hello World"
+
+// AI task
+let result = do "what is 1 + 1?"
+
+// Function
+function sayHello(name) {
+  return do "say hello to {name}"
+}
+
+let message = sayHello("Claude")

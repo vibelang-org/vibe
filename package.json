@@ -1,0 +1,24 @@
+{
+  "name": "vibe",
+  "version": "1.0.0",
+  "description": "AI agent orchestration language and runtime",
+  "main": "src/index.ts",
+  "type": "module",
+  "bin": {
+    "vibe": "src/index.ts"
+  },
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch src/index.ts",
+    "test": "bun test"
+  },
+  "keywords": ["ai", "agent", "orchestration", "dsl", "language"],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "dependencies": {
+    "chevrotain": "^11.0.3"
+  }
+}
