@@ -32,21 +32,28 @@ export const BlockComment = token({
 // Keywords (must come before Identifier)
 // ============================================================================
 
-export const Let = token({ name: 'Let', pattern: /let/ });
-export const Const = token({ name: 'Const', pattern: /const/ });
-export const Vibe = token({ name: 'Vibe', pattern: /vibe/ });
-export const Do = token({ name: 'Do', pattern: /do/ });
-export const Function = token({ name: 'Function', pattern: /function/ });
-export const Return = token({ name: 'Return', pattern: /return/ });
-export const If = token({ name: 'If', pattern: /if/ });
-export const Else = token({ name: 'Else', pattern: /else/ });
-export const Break = token({ name: 'Break', pattern: /break/ });
-export const Continue = token({ name: 'Continue', pattern: /continue/ });
-export const True = token({ name: 'True', pattern: /true/ });
-export const False = token({ name: 'False', pattern: /false/ });
-export const Model = token({ name: 'Model', pattern: /model/ });
-export const Default = token({ name: 'Default', pattern: /default/ });
-export const Local = token({ name: 'Local', pattern: /local/ });
+// Identifier must be defined first for longer_alt references
+export const Identifier = token({
+  name: 'Identifier',
+  pattern: /[a-zA-Z_][a-zA-Z0-9_]*/,
+});
+
+export const Let = token({ name: 'Let', pattern: /let/, longer_alt: Identifier });
+export const Const = token({ name: 'Const', pattern: /const/, longer_alt: Identifier });
+export const Vibe = token({ name: 'Vibe', pattern: /vibe/, longer_alt: Identifier });
+export const Do = token({ name: 'Do', pattern: /do/, longer_alt: Identifier });
+export const Ask = token({ name: 'Ask', pattern: /ask/, longer_alt: Identifier });
+export const Function = token({ name: 'Function', pattern: /function/, longer_alt: Identifier });
+export const Return = token({ name: 'Return', pattern: /return/, longer_alt: Identifier });
+export const If = token({ name: 'If', pattern: /if/, longer_alt: Identifier });
+export const Else = token({ name: 'Else', pattern: /else/, longer_alt: Identifier });
+export const Break = token({ name: 'Break', pattern: /break/, longer_alt: Identifier });
+export const Continue = token({ name: 'Continue', pattern: /continue/, longer_alt: Identifier });
+export const True = token({ name: 'True', pattern: /true/, longer_alt: Identifier });
+export const False = token({ name: 'False', pattern: /false/, longer_alt: Identifier });
+export const Model = token({ name: 'Model', pattern: /model/, longer_alt: Identifier });
+export const Default = token({ name: 'Default', pattern: /default/, longer_alt: Identifier });
+export const Local = token({ name: 'Local', pattern: /local/, longer_alt: Identifier });
 
 // ============================================================================
 // Literals
@@ -55,12 +62,6 @@ export const Local = token({ name: 'Local', pattern: /local/ });
 export const StringLiteral = token({
   name: 'StringLiteral',
   pattern: /"([^"\\]|\\.)*"|'([^'\\]|\\.)*'/,
-});
-
-// Identifier must come after keywords
-export const Identifier = token({
-  name: 'Identifier',
-  pattern: /[a-zA-Z_][a-zA-Z0-9_]*/,
 });
 
 // ============================================================================
@@ -95,6 +96,7 @@ export const allTokens = [
   Const,
   Vibe,
   Do,
+  Ask,
   Function,
   Return,
   If,

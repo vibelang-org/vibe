@@ -181,7 +181,7 @@ class VibeAstVisitor extends BaseVibeVisitor {
   // Expressions
   // ============================================================================
 
-  expression(ctx: { Do?: IToken[]; Vibe?: IToken[]; callExpression?: CstNode[]; expression?: CstNode[]; contextSpecifier?: CstNode[] }): AST.Expression {
+  expression(ctx: { Do?: IToken[]; Vibe?: IToken[]; Ask?: IToken[]; callExpression?: CstNode[]; expression?: CstNode[]; contextSpecifier?: CstNode[] }): AST.Expression {
     if (ctx.Do) {
       return {
         type: 'DoExpression',
@@ -197,6 +197,16 @@ class VibeAstVisitor extends BaseVibeVisitor {
         type: 'VibeExpression',
         prompt: this.visit(ctx.expression!),
         location: tokenLocation(ctx.Vibe[0]),
+      };
+    }
+
+    if (ctx.Ask) {
+      return {
+        type: 'AskExpression',
+        prompt: this.visit(ctx.expression![0]),
+        model: this.visit(ctx.expression![1]),
+        context: this.visit(ctx.contextSpecifier!),
+        location: tokenLocation(ctx.Ask[0]),
       };
     }
 

@@ -21,6 +21,10 @@ class MockAIProvider implements AIProvider {
   async generateCode(prompt: string): Promise<string> {
     return `// Generated code for: ${prompt}\nlet result = "generated"`;
   }
+
+  async askUser(prompt: string): Promise<string> {
+    return `[User response to: ${prompt}]`;
+  }
 }
 
 // Main function to run a vibe program

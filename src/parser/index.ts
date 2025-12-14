@@ -5,6 +5,7 @@ import {
   Const,
   Vibe,
   Do,
+  Ask,
   Function,
   Return,
   If,
@@ -187,6 +188,14 @@ class VibeParser extends CstParser {
         ALT: () => {
           this.CONSUME(Vibe);
           this.SUBRULE3(this.expression);
+        },
+      },
+      {
+        ALT: () => {
+          this.CONSUME(Ask);
+          this.SUBRULE4(this.expression);       // prompt
+          this.SUBRULE5(this.expression);       // model
+          this.SUBRULE2(this.contextSpecifier); // context
         },
       },
       // Call expression or primary

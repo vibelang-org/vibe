@@ -115,6 +115,17 @@ export class SemanticAnalyzer {
       case 'VibeExpression':
         this.visitExpression(node.prompt);
         break;
+
+      case 'AskExpression':
+        this.visitExpression(node.prompt);
+        this.checkModelType(node.model);
+        // Check context variable if it's a variable reference
+        if (node.context.kind === 'variable' && node.context.variable) {
+          if (!this.symbols.lookup(node.context.variable)) {
+            this.error(`'${node.context.variable}' is not defined`, node.context.location);
+          }
+        }
+        break;
     }
   }
 

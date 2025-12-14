@@ -109,7 +109,8 @@ export type Expression =
   | BooleanLiteral
   | CallExpression
   | DoExpression
-  | VibeExpression;
+  | VibeExpression
+  | AskExpression;
 
 export interface Identifier extends BaseNode {
   type: 'Identifier';
@@ -148,6 +149,13 @@ export interface ContextSpecifier extends BaseNode {
 export interface VibeExpression extends BaseNode {
   type: 'VibeExpression';
   prompt: Expression;
+}
+
+export interface AskExpression extends BaseNode {
+  type: 'AskExpression';
+  prompt: Expression;
+  model: Expression;
+  context: ContextSpecifier;
 }
 
 // ============================================================================

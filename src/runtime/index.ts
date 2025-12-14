@@ -5,6 +5,7 @@ import { parse } from '../parser/parse';
 export enum RuntimeStatus {
   RUNNING = 'RUNNING',
   AWAITING_AI_RESPONSE = 'AWAITING_AI_RESPONSE',
+  AWAITING_USER_INPUT = 'AWAITING_USER_INPUT',
   COMPLETED = 'COMPLETED',
   ERROR = 'ERROR',
 }
@@ -23,7 +24,7 @@ interface StackFrame {
 
 // AI operation history entry
 interface AIOperation {
-  type: 'do' | 'vibe';
+  type: 'do' | 'vibe' | 'ask';
   prompt: string;
   response: unknown;
   timestamp: number;
@@ -41,6 +42,7 @@ export interface RuntimeState {
 export interface AIProvider {
   execute(prompt: string): Promise<string>;
   generateCode(prompt: string): Promise<string>;
+  askUser(prompt: string): Promise<string>;
 }
 
 // Control flow exceptions
@@ -156,6 +158,10 @@ export class Runtime {
       case 'FunctionDeclaration':
         return null;
 
+      case 'ModelDeclaration':
+        // Models are declarative and don't execute anything
+        return null;
+
       case 'ReturnStatement':
         throw new ReturnValue(stmt.value ? await this.evaluateExpression(stmt.value) : null);
 
@@ -239,6 +245,9 @@ export class Runtime {
 
       case 'VibeExpression':
         return this.evaluateVibeExpression(expr);
+
+      case 'AskExpression':
+        return this.evaluateAskExpression(expr);
 
       default:
         throw new Error(`Unknown expression type: ${(expr as AST.Expression).type}`);
@@ -344,6 +353,24 @@ export class Runtime {
     }
 
     return result;
+  }
+
+  private async evaluateAskExpression(expr: AST.AskExpression): Promise<unknown> {
+    const prompt = String(await this.evaluateExpression(expr.prompt));
+
+    this.state.status = RuntimeStatus.AWAITING_USER_INPUT;
+
+    const response = await this.aiProvider.askUser(prompt);
+
+    this.state.aiHistory.push({
+      type: 'ask',
+      prompt,
+      response,
+      timestamp: Date.now(),
+    });
+
+    this.state.status = RuntimeStatus.RUNNING;
+    return response;
   }
 
   private isTruthy(value: unknown): boolean {
