@@ -147,6 +147,21 @@ export class Runtime {
     throw new Error(`Undefined variable '${name}'`);
   }
 
+  private setVariable(name: string, value: unknown): void {
+    const frame = this.currentFrame();
+    const variable = frame.locals.get(name);
+
+    if (!variable) {
+      throw new Error(`Undefined variable '${name}'`);
+    }
+
+    if (variable.isConst) {
+      throw new Error(`Cannot reassign constant '${name}'`);
+    }
+
+    variable.value = value;
+  }
+
   private async executeStatement(stmt: AST.Statement): Promise<unknown> {
     switch (stmt.type) {
       case 'LetDeclaration':
@@ -234,8 +249,14 @@ export class Runtime {
       case 'StringLiteral':
         return this.interpolateString(expr.value);
 
+      case 'BooleanLiteral':
+        return expr.value;
+
       case 'Identifier':
         return this.getVariable(expr.name);
+
+      case 'AssignmentExpression':
+        return this.evaluateAssignmentExpression(expr);
 
       case 'CallExpression':
         return this.evaluateCallExpression(expr);
@@ -252,6 +273,12 @@ export class Runtime {
       default:
         throw new Error(`Unknown expression type: ${(expr as AST.Expression).type}`);
     }
+  }
+
+  private async evaluateAssignmentExpression(expr: AST.AssignmentExpression): Promise<unknown> {
+    const value = await this.evaluateExpression(expr.value);
+    this.setVariable(expr.target.name, value);
+    return value;
   }
 
   private interpolateString(str: string): string {

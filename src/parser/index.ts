@@ -198,9 +198,20 @@ class VibeParser extends CstParser {
           this.SUBRULE2(this.contextSpecifier); // context
         },
       },
+      // Assignment expression (identifier = expression)
+      {
+        GATE: () => this.LA(1).tokenType === Identifier && this.LA(2).tokenType === Equals,
+        ALT: () => this.SUBRULE(this.assignmentExpression),
+      },
       // Call expression or primary
       { ALT: () => this.SUBRULE(this.callExpression) },
     ]);
+  });
+
+  private assignmentExpression = this.RULE('assignmentExpression', () => {
+    this.CONSUME(Identifier);
+    this.CONSUME(Equals);
+    this.SUBRULE(this.expression);
   });
 
   private contextSpecifier = this.RULE('contextSpecifier', () => {

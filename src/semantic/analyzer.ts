@@ -94,6 +94,10 @@ export class SemanticAnalyzer {
         // Literals are always valid
         break;
 
+      case 'AssignmentExpression':
+        this.visitAssignmentExpression(node);
+        break;
+
       case 'DoExpression':
         this.visitExpression(node.prompt);
         this.checkModelType(node.model);
@@ -127,6 +131,24 @@ export class SemanticAnalyzer {
         }
         break;
     }
+  }
+
+  private visitAssignmentExpression(node: AST.AssignmentExpression): void {
+    const name = node.target.name;
+    const symbol = this.symbols.lookup(name);
+
+    if (!symbol) {
+      this.error(`'${name}' is not defined`, node.target.location);
+    } else if (symbol.kind === 'constant') {
+      this.error(`Cannot reassign constant '${name}'`, node.location);
+    } else if (symbol.kind === 'function') {
+      this.error(`Cannot reassign function '${name}'`, node.location);
+    } else if (symbol.kind === 'model') {
+      this.error(`Cannot reassign model '${name}'`, node.location);
+    }
+
+    // Visit the value expression
+    this.visitExpression(node.value);
   }
 
   private visitFunction(node: AST.FunctionDeclaration): void {

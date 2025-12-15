@@ -107,6 +107,7 @@ export type Expression =
   | Identifier
   | StringLiteral
   | BooleanLiteral
+  | AssignmentExpression
   | CallExpression
   | DoExpression
   | VibeExpression
@@ -125,6 +126,12 @@ export interface StringLiteral extends BaseNode {
 export interface BooleanLiteral extends BaseNode {
   type: 'BooleanLiteral';
   value: boolean;
+}
+
+export interface AssignmentExpression extends BaseNode {
+  type: 'AssignmentExpression';
+  target: Identifier;
+  value: Expression;
 }
 
 export interface CallExpression extends BaseNode {

@@ -181,7 +181,7 @@ class VibeAstVisitor extends BaseVibeVisitor {
   // Expressions
   // ============================================================================
 
-  expression(ctx: { Do?: IToken[]; Vibe?: IToken[]; Ask?: IToken[]; callExpression?: CstNode[]; expression?: CstNode[]; contextSpecifier?: CstNode[] }): AST.Expression {
+  expression(ctx: { Do?: IToken[]; Vibe?: IToken[]; Ask?: IToken[]; assignmentExpression?: CstNode[]; callExpression?: CstNode[]; expression?: CstNode[]; contextSpecifier?: CstNode[] }): AST.Expression {
     if (ctx.Do) {
       return {
         type: 'DoExpression',
@@ -210,7 +210,24 @@ class VibeAstVisitor extends BaseVibeVisitor {
       };
     }
 
+    if (ctx.assignmentExpression) {
+      return this.visit(ctx.assignmentExpression);
+    }
+
     return this.visit(ctx.callExpression!);
+  }
+
+  assignmentExpression(ctx: { Identifier: IToken[]; expression: CstNode[] }): AST.AssignmentExpression {
+    return {
+      type: 'AssignmentExpression',
+      target: {
+        type: 'Identifier',
+        name: ctx.Identifier[0].image,
+        location: tokenLocation(ctx.Identifier[0]),
+      },
+      value: this.visit(ctx.expression),
+      location: tokenLocation(ctx.Identifier[0]),
+    };
   }
 
   contextSpecifier(ctx: { Default?: IToken[]; Local?: IToken[]; Identifier?: IToken[] }): AST.ContextSpecifier {
