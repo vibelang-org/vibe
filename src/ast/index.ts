@@ -36,12 +36,14 @@ export type Statement =
 export interface LetDeclaration extends BaseNode {
   type: 'LetDeclaration';
   name: string;
+  typeAnnotation: string | null;
   initializer: Expression | null;
 }
 
 export interface ConstDeclaration extends BaseNode {
   type: 'ConstDeclaration';
   name: string;
+  typeAnnotation: string | null;
   initializer: Expression;
 }
 
@@ -53,13 +55,10 @@ export interface ModelDeclaration extends BaseNode {
 
 export interface ModelConfig extends BaseNode {
   type: 'ModelConfig';
-  properties: ModelProperty[];
-}
-
-export interface ModelProperty extends BaseNode {
-  type: 'ModelProperty';
-  key: string;
-  value: Expression;
+  modelName: Expression | null;
+  apiKey: Expression | null;
+  url: Expression | null;
+  providedFields: string[];  // For semantic validation
 }
 
 export interface FunctionDeclaration extends BaseNode {
@@ -107,6 +106,8 @@ export type Expression =
   | Identifier
   | StringLiteral
   | BooleanLiteral
+  | ObjectLiteral
+  | ArrayLiteral
   | AssignmentExpression
   | CallExpression
   | DoExpression
@@ -126,6 +127,22 @@ export interface StringLiteral extends BaseNode {
 export interface BooleanLiteral extends BaseNode {
   type: 'BooleanLiteral';
   value: boolean;
+}
+
+export interface ObjectLiteral extends BaseNode {
+  type: 'ObjectLiteral';
+  properties: ObjectProperty[];
+}
+
+export interface ObjectProperty extends BaseNode {
+  type: 'ObjectProperty';
+  key: string;
+  value: Expression;
+}
+
+export interface ArrayLiteral extends BaseNode {
+  type: 'ArrayLiteral';
+  elements: Expression[];
 }
 
 export interface AssignmentExpression extends BaseNode {

@@ -28,7 +28,7 @@ describe('Runtime - Ask Expression', () => {
 
   test('ask expression returns user response', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let answer = ask "What is your name?" myModel default
 `);
     const provider = new MockAIProvider();
@@ -43,7 +43,7 @@ let answer = ask "What is your name?" myModel default
 
   test('ask expression result can be used', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let name = ask "What is your name?" myModel default
 name
 `);
@@ -58,7 +58,7 @@ name
 
   test('multiple ask expressions', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let first = ask "First?" myModel default
 let second = ask "Second?" myModel default
 `);
@@ -78,7 +78,7 @@ let second = ask "Second?" myModel default
 
   test('ask with interpolated prompt', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let name = "Alice"
 let answer = ask "Hello {name}, how are you?" myModel default
 `);
@@ -97,7 +97,7 @@ let answer = ask "Hello {name}, how are you?" myModel default
 
   test('ask inside function', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 function getInput(prompt) {
   return ask prompt myModel default
 }
@@ -121,7 +121,7 @@ result
 
   test('runtime status changes to AWAITING_USER_INPUT', async () => {
     const ast = parse(`
-model m = {}
+model m = { name: "test", apiKey: "key", url: "http://test" }
 let x = ask "test" m default
 `);
 
@@ -150,7 +150,7 @@ let x = ask "test" m default
 
   test('ask operations are recorded in aiHistory', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let a = ask "Question 1" myModel default
 let b = ask "Question 2" myModel default
 `);
@@ -180,7 +180,7 @@ let b = ask "Question 2" myModel default
 
   test('ask combined with do expression', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let userQuestion = ask "What do you want to know?" myModel default
 let aiAnswer = do userQuestion myModel default
 `);
@@ -203,7 +203,7 @@ let aiAnswer = do userQuestion myModel default
 
   test('ask with local context', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = ask "Question?" myModel local
 `);
     const provider = new MockAIProvider();
@@ -217,7 +217,7 @@ let x = ask "Question?" myModel local
 
   test('ask with variable context', async () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let myContext = "some context"
 let x = ask "Question?" myModel myContext
 x

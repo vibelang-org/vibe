@@ -9,7 +9,7 @@ describe('Semantic Analysis - Ask Expression', () => {
 
   test('ask with undefined variable as prompt', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = ask undefinedPrompt myModel default
 `);
     const errors = analyze(ast);
@@ -26,7 +26,7 @@ let x = ask undefinedPrompt myModel default
 
   test('ask with undefined context variable', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = ask "prompt" myModel undefinedContext
 `);
     const errors = analyze(ast);
@@ -72,7 +72,7 @@ let x = ask "prompt" notAModel default
 
   test('ask with parameter as model argument', () => {
     const ast = parse(`
-model realModel = {}
+model realModel = { name: "test", apiKey: "key", url: "http://test" }
 function test(notAModel) {
   let x = ask "prompt" notAModel default
   return x
@@ -89,7 +89,7 @@ function test(notAModel) {
 
   test('ask with string literal - no errors', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let name = ask "What is your name?" myModel default
 `);
     const errors = analyze(ast);
@@ -98,7 +98,7 @@ let name = ask "What is your name?" myModel default
 
   test('ask with defined variable prompt - no errors', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let question = "How old are you?"
 let answer = ask question myModel default
 `);
@@ -108,7 +108,7 @@ let answer = ask question myModel default
 
   test('ask with function parameter - no errors', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 function getInput(prompt) {
   return ask prompt myModel default
 }
@@ -119,7 +119,7 @@ function getInput(prompt) {
 
   test('ask with local context - no errors', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = ask "Question?" myModel local
 `);
     const errors = analyze(ast);
@@ -128,7 +128,7 @@ let x = ask "Question?" myModel local
 
   test('ask with variable context - no errors', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let myContext = "some context"
 let x = ask "Question?" myModel myContext
 `);
@@ -138,7 +138,7 @@ let x = ask "Question?" myModel myContext
 
   test('ask in nested function scope - no errors', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let globalPrompt = "Global question"
 function outer() {
   let localPrompt = "Local question"
@@ -160,7 +160,7 @@ function outer() {
 
   test('ask result assigned to duplicate variable', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = "first"
 let x = ask "What?" myModel default
 `);
@@ -171,7 +171,7 @@ let x = ask "What?" myModel default
 
   test('ask inside function with return outside function error', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 return ask "Invalid return" myModel default
 `);
     const errors = analyze(ast);
@@ -185,7 +185,7 @@ return ask "Invalid return" myModel default
 
   test('ask with variable from outer scope', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let question = "Outer question"
 if true {
   let answer = ask question myModel default
@@ -197,7 +197,7 @@ if true {
 
   test('ask with variable from inner scope - error', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 if true {
   let question = "Inner question"
 }
@@ -214,7 +214,7 @@ let answer = ask question myModel default
 
   test('multiple ask expressions with undefined variables', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let a = ask undefined1 myModel default
 let b = ask undefined2 myModel default
 `);
@@ -242,7 +242,7 @@ let b = ask "prompt2" notAModel default
 
   test('ask as function argument with undefined callee', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = unknownFunc(ask "test" myModel default)
 `);
     const errors = analyze(ast);
@@ -252,7 +252,7 @@ let x = unknownFunc(ask "test" myModel default)
 
   test('ask in valid function call', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 function process(input) {
   return input
 }

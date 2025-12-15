@@ -6,10 +6,12 @@ describe('Parser - Model Declaration', () => {
   // Basic model declarations
   // ============================================================================
 
-  test('basic model declaration', () => {
+  test('basic model declaration with all required fields', () => {
     const ast = parse(`
 model myModel = {
-  name: "gpt-4"
+  name: "gpt-4",
+  apiKey: "sk-test",
+  url: "https://api.openai.com"
 }
 `);
     expect(ast.body).toHaveLength(1);
@@ -18,44 +20,24 @@ model myModel = {
       name: 'myModel',
       config: {
         type: 'ModelConfig',
-        properties: [
-          {
-            type: 'ModelProperty',
-            key: 'name',
-            value: {
-              type: 'StringLiteral',
-              value: 'gpt-4',
-            },
-          },
-        ],
+        modelName: {
+          type: 'StringLiteral',
+          value: 'gpt-4',
+        },
+        apiKey: {
+          type: 'StringLiteral',
+          value: 'sk-test',
+        },
+        url: {
+          type: 'StringLiteral',
+          value: 'https://api.openai.com',
+        },
+        providedFields: ['name', 'apiKey', 'url'],
       },
     });
   });
 
-  test('model with multiple properties', () => {
-    const ast = parse(`
-model openai = {
-  name: "gpt-4",
-  apiUrl: "https://api.openai.com/v1/chat",
-  apiKey: "sk-test-key"
-}
-`);
-    expect(ast.body).toHaveLength(1);
-    expect(ast.body[0]).toMatchObject({
-      type: 'ModelDeclaration',
-      name: 'openai',
-      config: {
-        type: 'ModelConfig',
-        properties: [
-          { type: 'ModelProperty', key: 'name' },
-          { type: 'ModelProperty', key: 'apiUrl' },
-          { type: 'ModelProperty', key: 'apiKey' },
-        ],
-      },
-    });
-  });
-
-  test('model with empty object', () => {
+  test('model with empty object parses (validation in semantic)', () => {
     const ast = parse(`
 model emptyModel = {}
 `);
@@ -65,7 +47,10 @@ model emptyModel = {}
       name: 'emptyModel',
       config: {
         type: 'ModelConfig',
-        properties: [],
+        modelName: null,
+        apiKey: null,
+        url: null,
+        providedFields: [],
       },
     });
   });
@@ -73,11 +58,15 @@ model emptyModel = {}
   test('multiple model declarations', () => {
     const ast = parse(`
 model gpt4 = {
-  name: "gpt-4"
+  name: "gpt-4",
+  apiKey: "sk-test",
+  url: "https://api.openai.com"
 }
 
 model claude = {
-  name: "claude-3"
+  name: "claude-3",
+  apiKey: "sk-ant",
+  url: "https://api.anthropic.com"
 }
 `);
     expect(ast.body).toHaveLength(2);
@@ -91,42 +80,35 @@ model claude = {
     });
   });
 
-  test('model with boolean property value', () => {
-    const ast = parse(`
-model myModel = {
-  name: "test",
-  streaming: true
-}
-`);
-    expect(ast.body).toHaveLength(1);
-    const model = ast.body[0] as any;
-    expect(model.config.properties).toHaveLength(2);
-    expect(model.config.properties[1]).toMatchObject({
-      type: 'ModelProperty',
-      key: 'streaming',
-      value: {
-        type: 'BooleanLiteral',
-        value: true,
-      },
-    });
-  });
-
   test('model with identifier property value', () => {
     const ast = parse(`
 model myModel = {
-  apiKey: envApiKey
+  name: "gpt-4",
+  apiKey: envApiKey,
+  url: "https://api.openai.com"
 }
 `);
     expect(ast.body).toHaveLength(1);
     const model = ast.body[0] as any;
-    expect(model.config.properties[0]).toMatchObject({
-      type: 'ModelProperty',
-      key: 'apiKey',
-      value: {
-        type: 'Identifier',
-        name: 'envApiKey',
-      },
+    expect(model.config.apiKey).toMatchObject({
+      type: 'Identifier',
+      name: 'envApiKey',
     });
+  });
+
+  test('model fields can be in any order', () => {
+    const ast = parse(`
+model myModel = {
+  url: "https://api.openai.com",
+  name: "gpt-4",
+  apiKey: "sk-test"
+}
+`);
+    expect(ast.body).toHaveLength(1);
+    const model = ast.body[0] as any;
+    expect(model.config.modelName.value).toBe('gpt-4');
+    expect(model.config.apiKey.value).toBe('sk-test');
+    expect(model.config.url.value).toBe('https://api.openai.com');
   });
 });
 

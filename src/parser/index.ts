@@ -17,6 +17,8 @@ import {
   Model,
   Default,
   Local,
+  TextType,
+  JsonType,
   StringLiteral,
   Identifier,
   Equals,
@@ -24,6 +26,8 @@ import {
   RParen,
   LBrace,
   RBrace,
+  LBracket,
+  RBracket,
   Comma,
   Colon,
 } from '../lexer';
@@ -60,7 +64,12 @@ class VibeParser extends CstParser {
       { ALT: () => this.SUBRULE(this.ifStatement) },
       { ALT: () => this.SUBRULE(this.breakStatement) },
       { ALT: () => this.SUBRULE(this.continueStatement) },
-      { ALT: () => this.SUBRULE(this.blockStatement) },
+      // Distinguish block statement from object literal expression:
+      // { identifier : ... } is an object literal, otherwise it's a block
+      {
+        GATE: () => !(this.LA(1).tokenType === LBrace && this.LA(2).tokenType === Identifier && this.LA(3).tokenType === Colon),
+        ALT: () => this.SUBRULE(this.blockStatement),
+      },
       { ALT: () => this.SUBRULE(this.expressionStatement) },
     ]);
   });
@@ -69,6 +78,13 @@ class VibeParser extends CstParser {
     this.CONSUME(Let);
     this.CONSUME(Identifier);
     this.OPTION(() => {
+      this.CONSUME(Colon);
+      this.OR([
+        { ALT: () => this.CONSUME(TextType) },
+        { ALT: () => this.CONSUME(JsonType) },
+      ]);
+    });
+    this.OPTION2(() => {
       this.CONSUME(Equals);
       this.SUBRULE(this.expression);
     });
@@ -77,6 +93,13 @@ class VibeParser extends CstParser {
   private constDeclaration = this.RULE('constDeclaration', () => {
     this.CONSUME(Const);
     this.CONSUME(Identifier);
+    this.OPTION(() => {
+      this.CONSUME(Colon);
+      this.OR([
+        { ALT: () => this.CONSUME(TextType) },
+        { ALT: () => this.CONSUME(JsonType) },
+      ]);
+    });
     this.CONSUME(Equals);
     this.SUBRULE(this.expression);
   });
@@ -246,6 +269,8 @@ class VibeParser extends CstParser {
       { ALT: () => this.CONSUME(StringLiteral) },
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) },
+      { ALT: () => this.SUBRULE(this.objectLiteralExpr) },
+      { ALT: () => this.SUBRULE(this.arrayLiteral) },
       { ALT: () => this.CONSUME(Identifier) },
       {
         ALT: () => {
@@ -255,6 +280,30 @@ class VibeParser extends CstParser {
         },
       },
     ]);
+  });
+
+  private objectLiteralExpr = this.RULE('objectLiteralExpr', () => {
+    this.CONSUME(LBrace);
+    this.OPTION(() => {
+      this.SUBRULE(this.propertyList);
+    });
+    this.CONSUME(RBrace);
+  });
+
+  private arrayLiteral = this.RULE('arrayLiteral', () => {
+    this.CONSUME(LBracket);
+    this.OPTION(() => {
+      this.SUBRULE(this.elementList);
+    });
+    this.CONSUME(RBracket);
+  });
+
+  private elementList = this.RULE('elementList', () => {
+    this.SUBRULE(this.expression);
+    this.MANY(() => {
+      this.CONSUME(Comma);
+      this.SUBRULE2(this.expression);
+    });
   });
 }
 

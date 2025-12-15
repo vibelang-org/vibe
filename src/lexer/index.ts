@@ -55,6 +55,10 @@ export const Model = token({ name: 'Model', pattern: /model/, longer_alt: Identi
 export const Default = token({ name: 'Default', pattern: /default/, longer_alt: Identifier });
 export const Local = token({ name: 'Local', pattern: /local/, longer_alt: Identifier });
 
+// Type keywords
+export const TextType = token({ name: 'TextType', pattern: /text/, longer_alt: Identifier });
+export const JsonType = token({ name: 'JsonType', pattern: /json/, longer_alt: Identifier });
+
 // ============================================================================
 // Literals
 // ============================================================================
@@ -78,6 +82,8 @@ export const LParen = token({ name: 'LParen', pattern: /\(/ });
 export const RParen = token({ name: 'RParen', pattern: /\)/ });
 export const LBrace = token({ name: 'LBrace', pattern: /\{/ });
 export const RBrace = token({ name: 'RBrace', pattern: /\}/ });
+export const LBracket = token({ name: 'LBracket', pattern: /\[/ });
+export const RBracket = token({ name: 'RBracket', pattern: /\]/ });
 export const Comma = token({ name: 'Comma', pattern: /,/ });
 export const Colon = token({ name: 'Colon', pattern: /:/ });
 
@@ -108,6 +114,8 @@ export const allTokens = [
   Model,
   Default,
   Local,
+  TextType,
+  JsonType,
 
   // Literals
   StringLiteral,
@@ -123,6 +131,8 @@ export const allTokens = [
   RParen,
   LBrace,
   RBrace,
+  LBracket,
+  RBracket,
   Comma,
   Colon,
 ];

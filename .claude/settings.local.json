@@ -30,7 +30,9 @@
       "Bash(bun:*)",
       "Bash(bun test:*)",
       "Bash(dir:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(grep:*)",
+      "Bash(mv:*)"
     ],
     "deny": [
       "Bash(rm:*)",

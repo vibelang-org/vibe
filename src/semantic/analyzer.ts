@@ -25,20 +25,33 @@ export class SemanticAnalyzer {
     switch (node.type) {
       case 'LetDeclaration':
         this.declare(node.name, 'variable', node.location);
-        if (node.initializer) this.visitExpression(node.initializer);
+        if (node.typeAnnotation) {
+          this.validateTypeAnnotation(node.typeAnnotation, node.location);
+        }
+        if (node.initializer) {
+          this.visitExpression(node.initializer);
+          // Compile-time JSON validation for string literals
+          if (node.typeAnnotation === 'json' && node.initializer.type === 'StringLiteral') {
+            this.validateJsonLiteral(node.initializer.value, node.initializer.location);
+          }
+        }
         break;
 
       case 'ConstDeclaration':
         this.declare(node.name, 'constant', node.location);
+        if (node.typeAnnotation) {
+          this.validateTypeAnnotation(node.typeAnnotation, node.location);
+        }
         this.visitExpression(node.initializer);
+        // Compile-time JSON validation for string literals
+        if (node.typeAnnotation === 'json' && node.initializer.type === 'StringLiteral') {
+          this.validateJsonLiteral(node.initializer.value, node.initializer.location);
+        }
         break;
 
       case 'ModelDeclaration':
         this.declare(node.name, 'model', node.location);
-        // Check property values
-        for (const prop of node.config.properties) {
-          this.visitExpression(prop.value);
-        }
+        this.validateModelConfig(node);
         break;
 
       case 'FunctionDeclaration':
@@ -92,6 +105,18 @@ export class SemanticAnalyzer {
       case 'StringLiteral':
       case 'BooleanLiteral':
         // Literals are always valid
+        break;
+
+      case 'ObjectLiteral':
+        for (const prop of node.properties) {
+          this.visitExpression(prop.value);
+        }
+        break;
+
+      case 'ArrayLiteral':
+        for (const element of node.elements) {
+          this.visitExpression(element);
+        }
         break;
 
       case 'AssignmentExpression':
@@ -151,6 +176,31 @@ export class SemanticAnalyzer {
     this.visitExpression(node.value);
   }
 
+  private validateModelConfig(node: AST.ModelDeclaration): void {
+    const config = node.config;
+    const requiredFields = ['name', 'apiKey', 'url'];
+    const provided = new Set(config.providedFields);
+
+    // Check for missing required fields
+    for (const field of requiredFields) {
+      if (!provided.has(field)) {
+        this.error(`Model '${node.name}' is missing required field '${field}'`, node.location);
+      }
+    }
+
+    // Check for unknown fields
+    for (const field of config.providedFields) {
+      if (!requiredFields.includes(field)) {
+        this.error(`Model '${node.name}' has unknown field '${field}'`, node.location);
+      }
+    }
+
+    // Visit field expressions (check for undefined variables, etc.)
+    if (config.modelName) this.visitExpression(config.modelName);
+    if (config.apiKey) this.visitExpression(config.apiKey);
+    if (config.url) this.visitExpression(config.url);
+  }
+
   private visitFunction(node: AST.FunctionDeclaration): void {
     const wasInFunction = this.inFunction;
     this.inFunction = true;
@@ -195,5 +245,20 @@ export class SemanticAnalyzer {
 
   private error(message: string, location: SourceLocation): void {
     this.errors.push(new SemanticError(message, location, this.source));
+  }
+
+  private validateTypeAnnotation(type: string, location: SourceLocation): void {
+    const validTypes = ['text', 'json'];
+    if (!validTypes.includes(type)) {
+      this.error(`Unknown type '${type}'`, location);
+    }
+  }
+
+  private validateJsonLiteral(value: string, location: SourceLocation): void {
+    try {
+      JSON.parse(value);
+    } catch {
+      this.error(`Invalid JSON literal`, location);
+    }
   }
 }

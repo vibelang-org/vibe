@@ -58,48 +58,75 @@ class VibeAstVisitor extends BaseVibeVisitor {
     throw new Error('Unknown statement type');
   }
 
-  letDeclaration(ctx: { Let: IToken[]; Identifier: IToken[]; expression?: CstNode[] }): AST.LetDeclaration {
+  letDeclaration(ctx: { Let: IToken[]; Identifier: IToken[]; TextType?: IToken[]; JsonType?: IToken[]; expression?: CstNode[] }): AST.LetDeclaration {
+    const typeAnnotation = ctx.TextType ? 'text' : ctx.JsonType ? 'json' : null;
     return {
       type: 'LetDeclaration',
       name: ctx.Identifier[0].image,
+      typeAnnotation,
       initializer: ctx.expression ? this.visit(ctx.expression) : null,
       location: tokenLocation(ctx.Let[0]),
     };
   }
 
-  constDeclaration(ctx: { Const: IToken[]; Identifier: IToken[]; expression: CstNode[] }): AST.ConstDeclaration {
+  constDeclaration(ctx: { Const: IToken[]; Identifier: IToken[]; TextType?: IToken[]; JsonType?: IToken[]; expression: CstNode[] }): AST.ConstDeclaration {
+    const typeAnnotation = ctx.TextType ? 'text' : ctx.JsonType ? 'json' : null;
     return {
       type: 'ConstDeclaration',
       name: ctx.Identifier[0].image,
+      typeAnnotation,
       initializer: this.visit(ctx.expression),
       location: tokenLocation(ctx.Const[0]),
     };
   }
 
   modelDeclaration(ctx: { Model: IToken[]; Identifier: IToken[]; objectLiteral: CstNode[] }): AST.ModelDeclaration {
+    const { properties, location } = this.visit(ctx.objectLiteral) as { properties: Map<string, { value: AST.Expression; location: SourceLocation }>; location: SourceLocation };
+
+    // Extract required fields (validation happens in semantic analyzer)
+    const modelName = properties.get('name')?.value ?? null;
+    const apiKey = properties.get('apiKey')?.value ?? null;
+    const url = properties.get('url')?.value ?? null;
+
+    // Track which fields were provided for validation
+    const providedFields = [...properties.keys()];
+
     return {
       type: 'ModelDeclaration',
       name: ctx.Identifier[0].image,
-      config: this.visit(ctx.objectLiteral),
+      config: {
+        type: 'ModelConfig',
+        modelName,
+        apiKey,
+        url,
+        providedFields,
+        location: location,
+      },
       location: tokenLocation(ctx.Model[0]),
     };
   }
 
-  objectLiteral(ctx: { LBrace: IToken[]; propertyList?: CstNode[] }): AST.ModelConfig {
+  objectLiteral(ctx: { LBrace: IToken[]; propertyList?: CstNode[] }): { properties: Map<string, { value: AST.Expression; location: SourceLocation }>; location: SourceLocation } {
+    const properties = new Map<string, { value: AST.Expression; location: SourceLocation }>();
+    if (ctx.propertyList) {
+      const propList = this.visit(ctx.propertyList) as AST.ObjectProperty[];
+      for (const prop of propList) {
+        properties.set(prop.key, { value: prop.value, location: prop.location });
+      }
+    }
     return {
-      type: 'ModelConfig',
-      properties: ctx.propertyList ? this.visit(ctx.propertyList) : [],
+      properties,
       location: tokenLocation(ctx.LBrace[0]),
     };
   }
 
-  propertyList(ctx: { property: CstNode[] }): AST.ModelProperty[] {
+  propertyList(ctx: { property: CstNode[] }): AST.ObjectProperty[] {
     return ctx.property.map((p) => this.visit(p));
   }
 
-  property(ctx: { Identifier: IToken[]; expression: CstNode[] }): AST.ModelProperty {
+  property(ctx: { Identifier: IToken[]; expression: CstNode[] }): AST.ObjectProperty {
     return {
-      type: 'ModelProperty',
+      type: 'ObjectProperty',
       key: ctx.Identifier[0].image,
       value: this.visit(ctx.expression),
       location: tokenLocation(ctx.Identifier[0]),
@@ -280,6 +307,8 @@ class VibeAstVisitor extends BaseVibeVisitor {
     True?: IToken[];
     False?: IToken[];
     Identifier?: IToken[];
+    objectLiteralExpr?: CstNode[];
+    arrayLiteral?: CstNode[];
     expression?: CstNode[];
   }): AST.Expression {
     if (ctx.StringLiteral) {
@@ -306,6 +335,14 @@ class VibeAstVisitor extends BaseVibeVisitor {
       };
     }
 
+    if (ctx.objectLiteralExpr) {
+      return this.visit(ctx.objectLiteralExpr);
+    }
+
+    if (ctx.arrayLiteral) {
+      return this.visit(ctx.arrayLiteral);
+    }
+
     if (ctx.Identifier) {
       return {
         type: 'Identifier',
@@ -320,6 +357,32 @@ class VibeAstVisitor extends BaseVibeVisitor {
     }
 
     throw new Error('Unknown primary expression');
+  }
+
+  objectLiteralExpr(ctx: { LBrace: IToken[]; propertyList?: CstNode[] }): AST.ObjectLiteral {
+    const properties: AST.ObjectProperty[] = ctx.propertyList
+      ? this.visit(ctx.propertyList)
+      : [];
+    return {
+      type: 'ObjectLiteral',
+      properties,
+      location: tokenLocation(ctx.LBrace[0]),
+    };
+  }
+
+  arrayLiteral(ctx: { LBracket: IToken[]; elementList?: CstNode[] }): AST.ArrayLiteral {
+    const elements: AST.Expression[] = ctx.elementList
+      ? this.visit(ctx.elementList)
+      : [];
+    return {
+      type: 'ArrayLiteral',
+      elements,
+      location: tokenLocation(ctx.LBracket[0]),
+    };
+  }
+
+  elementList(ctx: { expression: CstNode[] }): AST.Expression[] {
+    return ctx.expression.map((e) => this.visit(e));
   }
 }
 

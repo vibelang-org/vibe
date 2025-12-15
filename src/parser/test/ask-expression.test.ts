@@ -8,7 +8,7 @@ describe('Parser - Ask Expression', () => {
 
   test('ask with string literal', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let name = ask "What is your name?" myModel default
 `);
     expect(ast.body).toHaveLength(2);
@@ -35,7 +35,7 @@ let name = ask "What is your name?" myModel default
 
   test('ask with variable prompt', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let question = "How old are you?"
 let answer = ask question myModel default
 `);
@@ -63,7 +63,7 @@ let answer = ask question myModel default
 
   test('ask with string interpolation', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let name = "Alice"
 let response = ask "Hello {name}, what do you want?" myModel default
 `);
@@ -87,7 +87,7 @@ let response = ask "Hello {name}, what do you want?" myModel default
 
   test('ask with local context', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = ask "Question?" myModel local
 `);
     expect(ast.body).toHaveLength(2);
@@ -105,7 +105,7 @@ let x = ask "Question?" myModel local
 
   test('ask with variable context', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let myContext = "some context"
 let x = ask "Question?" myModel myContext
 `);
@@ -129,7 +129,7 @@ let x = ask "Question?" myModel myContext
 
   test('ask in function body', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 function getUserInput(prompt) {
   return ask prompt myModel default
 }
@@ -162,7 +162,7 @@ function getUserInput(prompt) {
 
   test('ask in if condition', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 if ask "Continue?" myModel default {
   let x = "yes"
 }
@@ -182,7 +182,7 @@ if ask "Continue?" myModel default {
 
   test('ask as function argument', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 function process(input) {
   return input
 }
@@ -217,7 +217,7 @@ let result = process(ask "Enter value:" myModel default)
 
   test('multiple ask expressions', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let firstName = ask "First name?" myModel default
 let lastName = ask "Last name?" myModel default
 let age = ask "Age?" myModel default
@@ -255,7 +255,7 @@ let age = ask "Age?" myModel default
 
   test('ask with const declaration', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 const answer = ask "What is 2+2?" myModel default
 `);
     expect(ast.body).toHaveLength(2);
@@ -278,7 +278,7 @@ const answer = ask "What is 2+2?" myModel default
 
   test('ask expression has correct location', () => {
     const ast = parse(`
-model m = {}
+model m = { name: "test", apiKey: "key", url: "http://test" }
 let x = ask "test" m default
 `);
     const askExpr = (ast.body[1] as any).initializer;

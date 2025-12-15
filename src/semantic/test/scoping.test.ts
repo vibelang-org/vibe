@@ -161,7 +161,7 @@ function test(x) {
 
   test('model accessible in same scope', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = do "prompt" myModel default
 `);
     const errors = analyze(ast);
@@ -170,7 +170,7 @@ let x = do "prompt" myModel default
 
   test('model accessible in nested function', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 function test() {
   let x = do "prompt" myModel default
   return x
@@ -182,7 +182,7 @@ function test() {
 
   test('model accessible in nested block', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 if true {
   let x = do "prompt" myModel default
 }

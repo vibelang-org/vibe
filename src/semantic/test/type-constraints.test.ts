@@ -41,7 +41,7 @@ let x = do "prompt" notAModel default
 
   test('do expression with parameter as model argument', () => {
     const ast = parse(`
-model realModel = {}
+model realModel = { name: "test", apiKey: "key", url: "http://test" }
 function test(notAModel) {
   let x = do "prompt" notAModel default
   return x
@@ -58,7 +58,7 @@ function test(notAModel) {
 
   test('do expression with valid model', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = do "prompt" myModel default
 `);
     const errors = analyze(ast);
@@ -67,7 +67,7 @@ let x = do "prompt" myModel default
 
   test('do expression with model from outer scope', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 function test() {
   let x = do "prompt" myModel default
   return x

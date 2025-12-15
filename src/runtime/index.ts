@@ -1,5 +1,11 @@
 import * as AST from '../ast';
 import { parse } from '../parser/parse';
+import {
+  RuntimeError,
+  TypeError,
+  ReferenceError,
+  AssignmentError,
+} from '../errors';
 
 // Runtime status
 export enum RuntimeStatus {
@@ -10,10 +16,11 @@ export enum RuntimeStatus {
   ERROR = 'ERROR',
 }
 
-// Variable entry with mutability flag
+// Variable entry with mutability flag and optional type
 interface Variable {
   value: unknown;
   isConst: boolean;
+  typeAnnotation: string | null;
 }
 
 // Stack frame for function calls
@@ -74,6 +81,10 @@ export class Runtime {
     return { ...this.state };
   }
 
+  getValue(name: string): unknown {
+    return this.getVariable(name);
+  }
+
   async run(): Promise<unknown> {
     try {
       // First pass: collect function declarations
@@ -119,17 +130,18 @@ export class Runtime {
   private currentFrame(): StackFrame {
     const frame = this.state.callStack[this.state.callStack.length - 1];
     if (!frame) {
-      throw new Error('No active stack frame');
+      throw new RuntimeError('No active stack frame');
     }
     return frame;
   }
 
-  private declareVariable(name: string, value: unknown, isConst: boolean): void {
+  private declareVariable(name: string, value: unknown, isConst: boolean, typeAnnotation: string | null = null): void {
     const frame = this.currentFrame();
     if (frame.locals.has(name)) {
-      throw new Error(`Variable '${name}' is already declared`);
+      throw new RuntimeError(`Variable '${name}' is already declared`);
     }
-    frame.locals.set(name, { value, isConst });
+    const validatedValue = this.validateAndCoerce(value, typeAnnotation, name);
+    frame.locals.set(name, { value: validatedValue, isConst, typeAnnotation });
   }
 
   private getVariable(name: string): unknown {
@@ -144,7 +156,7 @@ export class Runtime {
       return { __vibeFunction: true, name };
     }
 
-    throw new Error(`Undefined variable '${name}'`);
+    throw new ReferenceError(name);
   }
 
   private setVariable(name: string, value: unknown): void {
@@ -152,14 +164,40 @@ export class Runtime {
     const variable = frame.locals.get(name);
 
     if (!variable) {
-      throw new Error(`Undefined variable '${name}'`);
+      throw new ReferenceError(name);
     }
 
     if (variable.isConst) {
-      throw new Error(`Cannot reassign constant '${name}'`);
+      throw new AssignmentError(name);
     }
 
-    variable.value = value;
+    const validatedValue = this.validateAndCoerce(value, variable.typeAnnotation, name);
+    variable.value = validatedValue;
+  }
+
+  private validateAndCoerce(value: unknown, type: string | null, varName: string): unknown {
+    if (!type || type === 'text') return value;
+
+    if (type === 'json') {
+      let result = value;
+
+      // If string, try to parse as JSON
+      if (typeof value === 'string') {
+        try {
+          result = JSON.parse(value);
+        } catch {
+          throw new TypeError(`Variable '${varName}': invalid JSON string`, 'json', 'string');
+        }
+      }
+
+      // Validate the result is an object or array (not a primitive)
+      if (typeof result !== 'object' || result === null) {
+        throw new TypeError(`Variable '${varName}': expected JSON object or array`, 'object | array', typeof result);
+      }
+      return result;
+    }
+
+    return value;
   }
 
   private async executeStatement(stmt: AST.Statement): Promise<unknown> {
@@ -196,18 +234,18 @@ export class Runtime {
         return this.evaluateExpression(stmt.expression);
 
       default:
-        throw new Error(`Unknown statement type: ${(stmt as AST.Statement).type}`);
+        throw new RuntimeError(`Unknown statement type: ${(stmt as AST.Statement).type}`);
     }
   }
 
   private async executeLetDeclaration(stmt: AST.LetDeclaration): Promise<void> {
     const value = stmt.initializer ? await this.evaluateExpression(stmt.initializer) : null;
-    this.declareVariable(stmt.name, value, false);
+    this.declareVariable(stmt.name, value, false, stmt.typeAnnotation);
   }
 
   private async executeConstDeclaration(stmt: AST.ConstDeclaration): Promise<void> {
     const value = await this.evaluateExpression(stmt.initializer);
-    this.declareVariable(stmt.name, value, true);
+    this.declareVariable(stmt.name, value, true, stmt.typeAnnotation);
   }
 
   private async executeIfStatement(stmt: AST.IfStatement): Promise<unknown> {
@@ -252,6 +290,12 @@ export class Runtime {
       case 'BooleanLiteral':
         return expr.value;
 
+      case 'ObjectLiteral':
+        return this.evaluateObjectLiteral(expr);
+
+      case 'ArrayLiteral':
+        return this.evaluateArrayLiteral(expr);
+
       case 'Identifier':
         return this.getVariable(expr.name);
 
@@ -271,7 +315,7 @@ export class Runtime {
         return this.evaluateAskExpression(expr);
 
       default:
-        throw new Error(`Unknown expression type: ${(expr as AST.Expression).type}`);
+        throw new RuntimeError(`Unknown expression type: ${(expr as AST.Expression).type}`);
     }
   }
 
@@ -279,6 +323,22 @@ export class Runtime {
     const value = await this.evaluateExpression(expr.value);
     this.setVariable(expr.target.name, value);
     return value;
+  }
+
+  private async evaluateObjectLiteral(expr: AST.ObjectLiteral): Promise<Record<string, unknown>> {
+    const obj: Record<string, unknown> = {};
+    for (const prop of expr.properties) {
+      obj[prop.key] = await this.evaluateExpression(prop.value);
+    }
+    return obj;
+  }
+
+  private async evaluateArrayLiteral(expr: AST.ArrayLiteral): Promise<unknown[]> {
+    const arr: unknown[] = [];
+    for (const element of expr.elements) {
+      arr.push(await this.evaluateExpression(element));
+    }
+    return arr;
   }
 
   private interpolateString(str: string): string {
@@ -299,7 +359,7 @@ export class Runtime {
       const funcName = (callee as { __vibeFunction: boolean; name: string }).name;
       const func = this.functions.get(funcName);
       if (!func) {
-        throw new Error(`Function '${funcName}' not found`);
+        throw new ReferenceError(funcName);
       }
 
       const args: unknown[] = [];
@@ -334,7 +394,7 @@ export class Runtime {
       return callee(...args);
     }
 
-    throw new Error('Cannot call non-function');
+    throw new TypeError('Cannot call non-function', 'function', typeof callee);
   }
 
   private async evaluateDoExpression(expr: AST.DoExpression): Promise<unknown> {

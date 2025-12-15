@@ -53,8 +53,8 @@ function greet(x) {
 
   test('duplicate model declaration', () => {
     const ast = parse(`
-model myModel = {}
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
+model myModel = { name: "test2", apiKey: "key2", url: "http://test2" }
 `);
     const errors = analyze(ast);
     expect(errors.length).toBe(1);
@@ -80,7 +80,7 @@ function greet(name) {
   test('variable and model with same name', () => {
     const ast = parse(`
 let myModel = "test"
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 `);
     const errors = analyze(ast);
     expect(errors.length).toBe(1);
@@ -92,7 +92,7 @@ model myModel = {}
 function myModel() {
   return "test"
 }
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 `);
     const errors = analyze(ast);
     expect(errors.length).toBe(1);

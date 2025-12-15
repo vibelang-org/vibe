@@ -43,7 +43,7 @@ let x = greet(unknownArg)
 
   test('using undefined variable as do prompt', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = do undefinedPrompt myModel default
 `);
     const errors = analyze(ast);
@@ -62,7 +62,7 @@ let x = do "prompt" undefinedModel default
 
   test('using undefined context variable in do expression', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = do "prompt" myModel undefinedContext
 `);
     const errors = analyze(ast);
@@ -154,7 +154,7 @@ function greet(name) {
 
   test('using model in do expression', () => {
     const ast = parse(`
-model myModel = {}
+model myModel = { name: "test", apiKey: "key", url: "http://test" }
 let x = do "prompt" myModel default
 `);
     const errors = analyze(ast);
