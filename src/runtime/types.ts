@@ -16,6 +16,13 @@ export interface Variable {
   typeAnnotation: string | null;
 }
 
+// Variable in context (for AI calls)
+export interface ContextVariable {
+  name: string;
+  value: unknown;
+  type: 'text' | 'json' | 'model' | null;
+}
+
 // Stack frame (serializable - uses Record instead of Map)
 export interface StackFrame {
   name: string;
@@ -63,6 +70,10 @@ export interface RuntimeState {
   lastResult: unknown;
   aiHistory: AIOperation[];
   executionLog: ExecutionEntry[];
+
+  // Context (rebuilt before each instruction)
+  localContext: ContextVariable[];
+  globalContext: ContextVariable[];
 
   // Pending async operation
   pendingAI: PendingAI | null;

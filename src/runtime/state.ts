@@ -26,6 +26,8 @@ export function createInitialState(program: AST.Program): RuntimeState {
     lastResult: null,
     aiHistory: [],
     executionLog: [],
+    localContext: [],
+    globalContext: [],
     pendingAI: null,
     error: null,
   };

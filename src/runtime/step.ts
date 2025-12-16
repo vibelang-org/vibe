@@ -1,6 +1,7 @@
 import * as AST from '../ast';
 import type { RuntimeState, Instruction, Variable, ExecutionEntry } from './types';
 import { currentFrame, createFrame } from './state';
+import { buildLocalContext, buildGlobalContext } from './context';
 
 // Get the next instruction that will be executed (or null if done/paused)
 export function getNextInstruction(state: RuntimeState): Instruction | null {
@@ -79,9 +80,16 @@ export function step(state: RuntimeState): RuntimeState {
     return { ...state, status: 'completed' };
   }
 
+  // Rebuild context BEFORE executing the instruction
+  const stateWithContext: RuntimeState = {
+    ...state,
+    localContext: buildLocalContext(state),
+    globalContext: buildGlobalContext(state),
+  };
+
   // Pop next instruction
-  const [instruction, ...restInstructions] = state.instructionStack;
-  const newState: RuntimeState = { ...state, instructionStack: restInstructions };
+  const [instruction, ...restInstructions] = stateWithContext.instructionStack;
+  const newState: RuntimeState = { ...stateWithContext, instructionStack: restInstructions };
 
   try {
     return executeInstruction(newState, instruction);

@@ -4,6 +4,7 @@ export type {
   RuntimeStatus,
   StackFrame,
   Variable,
+  ContextVariable,
   AIOperation,
   ExecutionEntry,
   PendingAI,
@@ -32,6 +33,12 @@ export {
   stepUntilStatement,
   stepUntilOp,
 } from './step';
+
+// Re-export context functions
+export {
+  buildLocalContext,
+  buildGlobalContext,
+} from './context';
 
 // Re-export serialization
 export {
