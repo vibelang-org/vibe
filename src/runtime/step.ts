@@ -1,13 +1,13 @@
 import * as AST from '../ast';
-import type { RuntimeState, Instruction, Variable, ExecutionEntry } from './types';
+import type { RuntimeState, Instruction, Variable, ExecutionEntry, StackFrame } from './types';
 import { currentFrame, createFrame } from './state';
 import { buildLocalContext, buildGlobalContext } from './context';
 
 // Helper: Look up a variable by walking the scope chain
 function lookupVariable(state: RuntimeState, name: string): { variable: Variable; frameIndex: number } | null {
   let frameIndex: number | null = state.callStack.length - 1;
-  while (frameIndex !== null) {
-    const frame = state.callStack[frameIndex];
+  while (frameIndex !== null && frameIndex >= 0) {
+    const frame: StackFrame = state.callStack[frameIndex];
     if (frame.locals[name]) {
       return { variable: frame.locals[name], frameIndex };
     }
@@ -321,13 +321,21 @@ function execConstDeclaration(state: RuntimeState, stmt: AST.ConstDeclaration): 
   };
 }
 
+// Helper: Extract string value from an expression (for model config)
+function extractStringValue(expr: AST.Expression | null): string | null {
+  if (!expr) return null;
+  if (expr.type === 'StringLiteral') return expr.value;
+  if (expr.type === 'Identifier') return expr.name;
+  return null;
+}
+
 // Model declaration - store model config in locals
 function execModelDeclaration(state: RuntimeState, stmt: AST.ModelDeclaration): RuntimeState {
   const modelValue = {
     __vibeModel: true,
-    name: stmt.config.name,
-    apiKey: stmt.config.apiKey,
-    url: stmt.config.url,
+    name: extractStringValue(stmt.config.modelName),
+    apiKey: extractStringValue(stmt.config.apiKey),
+    url: extractStringValue(stmt.config.url),
   };
 
   const frame = currentFrame(state);
@@ -770,13 +778,19 @@ function execStatements(state: RuntimeState, stmts: AST.Statement[], index: numb
   };
 }
 
+// Helper: Extract model name from expression
+function extractModelName(expr: AST.Expression): string {
+  if (expr.type === 'Identifier') return expr.name;
+  throw new Error('Model must be an identifier');
+}
+
 // Do expression - AI call
 function execDoExpression(state: RuntimeState, expr: AST.DoExpression): RuntimeState {
   return {
     ...state,
     instructionStack: [
       { op: 'exec_expression', expr: expr.prompt },
-      { op: 'ai_do', model: expr.model, context: expr.context },
+      { op: 'ai_do', model: extractModelName(expr.model), context: expr.context },
       ...state.instructionStack,
     ],
   };
@@ -788,19 +802,24 @@ function execAskExpression(state: RuntimeState, expr: AST.AskExpression): Runtim
     ...state,
     instructionStack: [
       { op: 'exec_expression', expr: expr.prompt },
-      { op: 'ai_ask', model: expr.model, context: expr.context },
+      { op: 'ai_ask', model: extractModelName(expr.model), context: expr.context },
       ...state.instructionStack,
     ],
   };
 }
 
-// Vibe expression - code generation
+// Vibe expression - code generation (no model/context - uses defaults)
 function execVibeExpression(state: RuntimeState, expr: AST.VibeExpression): RuntimeState {
+  const defaultContext: AST.ContextSpecifier = {
+    type: 'ContextSpecifier',
+    kind: 'default',
+    location: expr.location,
+  };
   return {
     ...state,
     instructionStack: [
       { op: 'exec_expression', expr: expr.prompt },
-      { op: 'ai_vibe', model: expr.model, context: expr.context },
+      { op: 'ai_vibe', model: 'default', context: defaultContext },
       ...state.instructionStack,
     ],
   };

@@ -1,7 +1,6 @@
-// Re-export types
+// Re-export types (RuntimeStatus exported as enum below for backward compatibility)
 export type {
   RuntimeState,
-  RuntimeStatus,
   StackFrame,
   Variable,
   ContextVariable,

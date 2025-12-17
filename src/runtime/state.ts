@@ -139,8 +139,8 @@ export function currentFrame(state: RuntimeState): StackFrame {
 export function getVariable(state: RuntimeState, name: string): unknown {
   // Walk the scope chain
   let frameIndex: number | null = state.callStack.length - 1;
-  while (frameIndex !== null) {
-    const frame = state.callStack[frameIndex];
+  while (frameIndex !== null && frameIndex >= 0) {
+    const frame: StackFrame = state.callStack[frameIndex];
     const variable = frame.locals[name];
     if (variable) {
       return variable.value;
