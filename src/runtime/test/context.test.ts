@@ -19,7 +19,7 @@ describe('Context Building Functions', () => {
     expect(context).toEqual([]);
   });
 
-  test('buildLocalContext returns variables from current frame', () => {
+  test('buildLocalContext returns variables from current frame with frame info', () => {
     const ast = parse(`
       let x = "hello"
       const y: json = { key: "value" }
@@ -34,11 +34,15 @@ describe('Context Building Functions', () => {
     expect(xVar).toBeDefined();
     expect(xVar?.value).toBe('hello');
     expect(xVar?.type).toBeNull();
+    expect(xVar?.frameName).toBe('<entry>');
+    expect(xVar?.frameDepth).toBe(0);
 
     const yVar = context.find((v) => v.name === 'y');
     expect(yVar).toBeDefined();
     expect(yVar?.value).toEqual({ key: 'value' });
     expect(yVar?.type).toBe('json');
+    expect(yVar?.frameName).toBe('<entry>');
+    expect(yVar?.frameDepth).toBe(0);
   });
 
   test('buildGlobalContext returns empty array for initial state', () => {
@@ -49,7 +53,7 @@ describe('Context Building Functions', () => {
     expect(context).toEqual([]);
   });
 
-  test('buildGlobalContext returns variables from all frames', () => {
+  test('buildGlobalContext returns variables from all frames with frame info', () => {
     const ast = parse(`
       let outer = "outer value"
       function inner() {
@@ -63,8 +67,16 @@ describe('Context Building Functions', () => {
 
     // After completion, only main frame remains
     const context = buildGlobalContext(state);
-    expect(context.some((v) => v.name === 'outer')).toBe(true);
-    expect(context.some((v) => v.name === 'result')).toBe(true);
+
+    const outerVar = context.find((v) => v.name === 'outer');
+    expect(outerVar).toBeDefined();
+    expect(outerVar?.frameName).toBe('<entry>');
+    expect(outerVar?.frameDepth).toBe(0);
+
+    const resultVar = context.find((v) => v.name === 'result');
+    expect(resultVar).toBeDefined();
+    expect(resultVar?.frameName).toBe('<entry>');
+    expect(resultVar?.frameDepth).toBe(0);
   });
 
   test('context is rebuilt before each instruction in step()', () => {
@@ -118,7 +130,7 @@ describe('Context Building Functions', () => {
     expect(xVar?.value).toBe('updated');
   });
 
-  test('context works with nested function calls', () => {
+  test('context works with nested function calls and shows frame depth', () => {
     const ast = parse(`
       let outer = "outer"
       function getInner() {
@@ -134,19 +146,26 @@ describe('Context Building Functions', () => {
       state = step(state);
     }
 
-    // If we got inside the function, check global context
+    // If we got inside the function, check global context with frame depths
     if (state.callStack.length >= 2) {
       const globalCtx = buildGlobalContext(state);
-      // Should see outer from main frame
-      expect(globalCtx.some((v) => v.name === 'outer')).toBe(true);
+
+      // Outer should be from <entry> frame (depth 0 = entry)
+      const outerVar = globalCtx.find((v) => v.name === 'outer');
+      expect(outerVar).toBeDefined();
+      expect(outerVar?.frameName).toBe('<entry>');
+      expect(outerVar?.frameDepth).toBe(0); // Entry frame is always depth 0
     }
 
     // Complete execution
     state = runUntilPause(state);
 
-    // After completion, result should be set
+    // After completion, result should be set with correct frame info
     const finalContext = buildLocalContext(state);
-    expect(finalContext.find((v) => v.name === 'result')?.value).toBe('inner');
+    const resultVar = finalContext.find((v) => v.name === 'result');
+    expect(resultVar?.value).toBe('inner');
+    expect(resultVar?.frameName).toBe('<entry>');
+    expect(resultVar?.frameDepth).toBe(0);
   });
 
   test('localContext and globalContext are stored in state', () => {
@@ -165,7 +184,7 @@ describe('Context Building Functions', () => {
     expect(Array.isArray(state.globalContext)).toBe(true);
   });
 
-  test('context handles model declarations', () => {
+  test('context filters out model declarations', () => {
     const ast = parse(`
       model m = { name: "test", apiKey: "key", url: "http://test" }
       let x = "hello"
@@ -175,12 +194,11 @@ describe('Context Building Functions', () => {
 
     const context = buildLocalContext(state);
 
-    // Model should be in context
+    // Model should be filtered out of context (it's config, not data for AI)
     const modelVar = context.find((v) => v.name === 'm');
-    expect(modelVar).toBeDefined();
-    expect(modelVar?.type).toBe('model');
+    expect(modelVar).toBeUndefined();
 
-    // Regular variable too
+    // Regular variable should still be in context
     const xVar = context.find((v) => v.name === 'x');
     expect(xVar?.value).toBe('hello');
   });
@@ -227,18 +245,18 @@ describe('Context Building Functions', () => {
       const localCtx = normalizeContext(buildLocalContext(state));
       const globalCtx = normalizeContext(buildGlobalContext(state));
 
-      // Local context should only have function frame variables
+      // Local context should only have function frame variables (depth 1 = called from entry)
       expect(localCtx).toEqual([
-        { name: 'funcLocal', value: 'func_local', type: null },
-        { name: 'input', value: 'arg_value', type: null },
+        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
       ]);
 
-      // Global context should have main frame + function frame
+      // Global context should have <entry> frame (depth 0) + function frame (depth 1)
       expect(globalCtx).toEqual([
-        { name: 'funcLocal', value: 'func_local', type: null },
-        { name: 'input', value: 'arg_value', type: null },
-        { name: 'outer', value: 'outer_value', type: null },
-        { name: 'outerConst', value: { key: 'json_value' }, type: 'json' },
+        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+        { name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
       ]);
     }
 
@@ -260,18 +278,18 @@ describe('Context Building Functions', () => {
 
       // Local context now includes blockVar (blocks share frame with function)
       expect(localCtxInBlock).toEqual([
-        { name: 'blockVar', value: 'block_value', type: null },
-        { name: 'funcLocal', value: 'func_local', type: null },
-        { name: 'input', value: 'arg_value', type: null },
+        { name: 'blockVar', value: 'block_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
       ]);
 
       // Global context includes everything
       expect(globalCtxInBlock).toEqual([
-        { name: 'blockVar', value: 'block_value', type: null },
-        { name: 'funcLocal', value: 'func_local', type: null },
-        { name: 'input', value: 'arg_value', type: null },
-        { name: 'outer', value: 'outer_value', type: null },
-        { name: 'outerConst', value: { key: 'json_value' }, type: 'json' },
+        { name: 'blockVar', value: 'block_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+        { name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
       ]);
     }
 
@@ -303,10 +321,11 @@ describe('Context Building Functions', () => {
     const finalGlobalCtx = normalizeContext(buildGlobalContext(state));
 
     // Should have outer, outerConst, and result (blockVar and funcLocal are gone)
+    // All in <entry> frame at depth 0 since it's the only frame
     expect(finalLocalCtx).toEqual([
-      { name: 'outer', value: 'outer_value', type: null },
-      { name: 'outerConst', value: { key: 'json_value' }, type: 'json' },
-      { name: 'result', value: 'arg_value', type: null },
+      { name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+      { name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
+      { name: 'result', value: 'arg_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
     ]);
 
     // Local and global should be same when only one frame

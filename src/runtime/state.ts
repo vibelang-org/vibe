@@ -20,7 +20,7 @@ export function createInitialState(program: AST.Program): RuntimeState {
     status: 'running',
     program,
     functions,
-    callStack: [createFrame('main')],
+    callStack: [createFrame('<entry>')],
     instructionStack,
     valueStack: [],
     lastResult: null,

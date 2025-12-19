@@ -24,7 +24,7 @@ describe('Functional Runtime - Step Execution', () => {
 
     expect(state.status).toBe('running');
     expect(state.callStack).toHaveLength(1);
-    expect(state.callStack[0].name).toBe('main');
+    expect(state.callStack[0].name).toBe('<entry>');
     expect(state.instructionStack.length).toBeGreaterThan(0);
     expect(state.lastResult).toBeNull();
   });
@@ -226,7 +226,7 @@ describe('Functional Runtime - Serialization', () => {
     const summary = getStateSummary(state);
 
     expect(summary.status).toBe('completed');
-    expect(summary.currentFrame).toBe('main');
+    expect(summary.currentFrame).toBe('<entry>');
     expect(summary.variables).toHaveProperty('x');
     expect(summary.variables).toHaveProperty('y');
   });

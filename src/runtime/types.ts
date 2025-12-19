@@ -17,10 +17,15 @@ export interface Variable {
 }
 
 // Variable in context (for AI calls)
+// Note: Models are filtered out - they are config, not data for AI context
 export interface ContextVariable {
   name: string;
   value: unknown;
-  type: 'text' | 'json' | 'model' | null;
+  type: 'text' | 'json' | null;
+  isConst: boolean;
+  // Call stack location info (helps AI understand variable scope)
+  frameName: string;      // Name of the function/scope (e.g., "main", "processData")
+  frameDepth: number;     // 0 = deepest/current frame, higher = older frames
 }
 
 // Stack frame (serializable - uses Record instead of Map)

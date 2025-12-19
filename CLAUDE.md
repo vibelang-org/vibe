@@ -140,3 +140,29 @@ const results = await Promise.all(
 - Async operations requiring sequential execution (use traditional for loops)
 
 Remember: The goal is readable, maintainable, and correct code.
+
+---
+
+## Testing Standards
+
+### Prefer Complete Value Assertions Over Point Checks
+
+When testing data structures like context arrays, state objects, or formatted output, prefer asserting the **entire value** rather than individual point checks. This catches unexpected fields, ordering issues, and ensures comprehensive coverage.
+
+```typescript
+// Good - Verify the complete structure
+expect(state.localContext).toEqual([
+  { name: 'API_KEY', value: 'secret', type: null, isConst: true },
+  { name: 'counter', value: '0', type: null, isConst: false },
+  { name: 'm', value: "test" },
+]);
+
+// Bad - Point checks miss structural issues
+expect(state.localContext.some(v => v.name === 'API_KEY')).toBe(true);
+expect(state.localContext.find(v => v.name === 'API_KEY')?.isConst).toBe(true);
+```
+
+### When Point Checks Are Acceptable
+- When only a specific field matters and the rest is implementation detail
+- When the structure is very large and only a subset is relevant to the test
+- When testing error conditions or status flags

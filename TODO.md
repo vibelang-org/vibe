@@ -6,6 +6,21 @@
 
 ## Completed
 
+- [x] Filter model variables from AI context
+  - [x] Models are config, not data - exclude from localContext/globalContext
+  - [x] Update ContextVariable type to remove 'model' from type union
+  - [x] Add complex formatted context tests (nested blocks, functions, mixed types)
+- [x] Add context formatter for AI calls
+  - [x] Add `isConst` field to ContextVariable type
+  - [x] Create `formatContextForAI()` with sorting (const first, let last)
+  - [x] Add instructional wrapping for AI models
+  - [x] Create test helpers (`createMockAIRunner`, `runWithMockAI`)
+  - [x] Add comprehensive AI context tests
+- [x] Fix TypeScript errors (9 errors fixed)
+  - [x] Export conflict for RuntimeStatus
+  - [x] Implicit any for frame helpers
+  - [x] AST type mismatches (ModelConfig, Expression vs string)
+  - [x] tsconfig module setting for import.meta
 - [x] Disallow nested function declarations (functions only at top level)
   - [x] Add `atTopLevel` tracking to semantic analyzer
   - [x] Error on function declarations inside blocks or functions

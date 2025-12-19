@@ -37,6 +37,8 @@ export {
 export {
   buildLocalContext,
   buildGlobalContext,
+  formatContextForAI,
+  type FormattedContext,
 } from './context';
 
 // Re-export serialization
