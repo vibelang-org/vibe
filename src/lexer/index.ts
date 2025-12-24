@@ -58,6 +58,7 @@ export const Local = token({ name: 'Local', pattern: /local/, longer_alt: Identi
 // Type keywords
 export const TextType = token({ name: 'TextType', pattern: /text/, longer_alt: Identifier });
 export const JsonType = token({ name: 'JsonType', pattern: /json/, longer_alt: Identifier });
+export const PromptType = token({ name: 'PromptType', pattern: /prompt/, longer_alt: Identifier });
 
 // ============================================================================
 // Literals
@@ -116,6 +117,7 @@ export const allTokens = [
   Local,
   TextType,
   JsonType,
+  PromptType,
 
   // Literals
   StringLiteral,

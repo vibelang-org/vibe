@@ -1,15 +1,18 @@
 import type { RuntimeState, ContextVariable } from './types';
 
+// Types that are filtered from context (config/instructions, not data for AI)
+const FILTERED_TYPES = ['model', 'prompt'];
+
 // Build local context - variables from current frame only
 // Pure function: takes full state, returns context array
-// Note: Model variables are filtered out (they are config, not data for AI context)
+// Note: Model and prompt variables are filtered out (they are config/instructions, not data for AI context)
 export function buildLocalContext(state: RuntimeState): ContextVariable[] {
   const frameIndex = state.callStack.length - 1;
   const frame = state.callStack[frameIndex];
   if (!frame) return [];
 
   return Object.entries(frame.locals)
-    .filter(([, variable]) => variable.typeAnnotation !== 'model')
+    .filter(([, variable]) => !FILTERED_TYPES.includes(variable.typeAnnotation ?? ''))
     .map(([name, variable]) => ({
       name,
       value: variable.value,
@@ -22,7 +25,7 @@ export function buildLocalContext(state: RuntimeState): ContextVariable[] {
 
 // Build global context - variables from all frames in call stack
 // Pure function: takes full state, returns context array
-// Note: Model variables are filtered out (they are config, not data for AI context)
+// Note: Model and prompt variables are filtered out (they are config/instructions, not data for AI context)
 // Variables are returned with frameDepth: 0 = entry frame, higher = deeper in call stack
 export function buildGlobalContext(state: RuntimeState): ContextVariable[] {
   return state.callStack.flatMap((frame, frameIndex) => {
@@ -30,7 +33,7 @@ export function buildGlobalContext(state: RuntimeState): ContextVariable[] {
     const frameDepth = frameIndex;
 
     return Object.entries(frame.locals)
-      .filter(([, variable]) => variable.typeAnnotation !== 'model')
+      .filter(([, variable]) => !FILTERED_TYPES.includes(variable.typeAnnotation ?? ''))
       .map(([name, variable]) => ({
         name,
         value: variable.value,

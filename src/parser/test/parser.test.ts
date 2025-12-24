@@ -437,7 +437,7 @@ function test() {
   });
 
   test('do with identifier', () => {
-    const ast = parse('let x = do prompt myModel local');
+    const ast = parse('let x = do message myModel local');
     expect(ast.body).toHaveLength(1);
     expect(ast.body[0]).toMatchObject({
       type: 'LetDeclaration',
@@ -446,7 +446,7 @@ function test() {
         type: 'DoExpression',
         prompt: {
           type: 'Identifier',
-          name: 'prompt',
+          name: 'message',
         },
         model: {
           type: 'Identifier',

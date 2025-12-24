@@ -19,6 +19,7 @@ import {
   Local,
   TextType,
   JsonType,
+  PromptType,
   StringLiteral,
   Identifier,
   Equals,
@@ -82,6 +83,7 @@ class VibeParser extends CstParser {
       this.OR([
         { ALT: () => this.CONSUME(TextType) },
         { ALT: () => this.CONSUME(JsonType) },
+        { ALT: () => this.CONSUME(PromptType) },
       ]);
     });
     this.OPTION2(() => {
@@ -98,6 +100,7 @@ class VibeParser extends CstParser {
       this.OR([
         { ALT: () => this.CONSUME(TextType) },
         { ALT: () => this.CONSUME(JsonType) },
+        { ALT: () => this.CONSUME(PromptType) },
       ]);
     });
     this.CONSUME(Equals);

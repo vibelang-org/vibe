@@ -11,6 +11,209 @@ import { runWithMockAI } from './helpers';
 
 describe('AI Context Tests', () => {
   // ============================================================================
+  // Prompt type filtering in AI calls
+  // ============================================================================
+
+  test('prompt typed variables filtered from context during do call', () => {
+    const ast = parse(`
+      const SYSTEM: prompt = "You are a helpful assistant"
+      let userQuestion: prompt = "What is 2+2?"
+      let userData = "some user data"
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+      let result = do userQuestion m default
+    `);
+
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    expect(state.status).toBe('awaiting_ai');
+    expect(state.pendingAI?.prompt).toBe('What is 2+2?');
+
+    // Prompt typed variables (SYSTEM, userQuestion) and model should be filtered out
+    // Only userData should remain
+    expect(state.localContext).toEqual([
+      { name: 'userData', value: 'some user data', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+    ]);
+
+    expect(state.globalContext).toEqual(state.localContext);
+  });
+
+  test('prompt typed variables filtered in nested function context', () => {
+    const ast = parse(`
+      const GLOBAL_PROMPT: prompt = "Global system prompt"
+      const GLOBAL_DATA = "global data value"
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+
+      function processQuery(input) {
+        const LOCAL_PROMPT: prompt = "Process this: {input}"
+        let localData = "local data"
+        return do LOCAL_PROMPT m default
+      }
+
+      let result = processQuery("user query")
+    `);
+
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    expect(state.status).toBe('awaiting_ai');
+    expect(state.pendingAI?.prompt).toBe('Process this: user query');
+
+    // Local context: function frame only, LOCAL_PROMPT filtered out
+    expect(state.localContext).toEqual([
+      { name: 'input', value: 'user query', type: null, isConst: false, frameName: 'processQuery', frameDepth: 1 },
+      { name: 'localData', value: 'local data', type: null, isConst: false, frameName: 'processQuery', frameDepth: 1 },
+    ]);
+
+    // Global context: entry frame + function frame, all prompts and model filtered
+    expect(state.globalContext).toEqual([
+      { name: 'GLOBAL_DATA', value: 'global data value', type: null, isConst: true, frameName: '<entry>', frameDepth: 0 },
+      { name: 'input', value: 'user query', type: null, isConst: false, frameName: 'processQuery', frameDepth: 1 },
+      { name: 'localData', value: 'local data', type: null, isConst: false, frameName: 'processQuery', frameDepth: 1 },
+    ]);
+  });
+
+  test('prompt filtering with multiple do calls and result assignment', () => {
+    // Assignment order: inputData, model, ANALYZE_PROMPT, analyzed, SUMMARIZE_PROMPT, summary
+    // Context should show visible variables in assignment order (prompts/model filtered)
+    const ast = parse(`
+      let inputData = "raw data"
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+      const ANALYZE_PROMPT: prompt = "Analyze this"
+      let analyzed = do ANALYZE_PROMPT m default
+      const SUMMARIZE_PROMPT: prompt = "Summarize this"
+      let summary = do SUMMARIZE_PROMPT m default
+    `);
+
+    let state = createInitialState(ast);
+
+    // First do call - after inputData, model, ANALYZE_PROMPT assigned
+    state = runUntilPause(state);
+    expect(state.status).toBe('awaiting_ai');
+    expect(state.pendingAI?.prompt).toBe('Analyze this');
+
+    // Context at first AI call: only inputData visible (model, ANALYZE_PROMPT filtered)
+    expect(state.localContext).toEqual([
+      { name: 'inputData', value: 'raw data', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+    ]);
+
+    // Verify formatted text context at first pause
+    const formatted1 = formatContextForAI(state.localContext, { includeInstructions: false });
+    expect(formatted1.text).toBe(
+      `  <entry> (current scope)
+    - inputData: raw data`
+    );
+
+    // Resume - analyzed gets assigned, then SUMMARIZE_PROMPT, then pause at second do
+    state = resumeWithAIResponse(state, 'analysis result');
+    state = runUntilPause(state);
+    expect(state.status).toBe('awaiting_ai');
+    expect(state.pendingAI?.prompt).toBe('Summarize this');
+
+    // Context at second AI call: inputData, analyzed (in assignment order, prompts filtered)
+    expect(state.localContext).toEqual([
+      { name: 'inputData', value: 'raw data', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+      { name: 'analyzed', value: 'analysis result', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+    ]);
+
+    // Verify formatted text context at second pause - shows assignment order
+    const formatted2 = formatContextForAI(state.localContext, { includeInstructions: false });
+    expect(formatted2.text).toBe(
+      `  <entry> (current scope)
+    - inputData: raw data
+    - analyzed: analysis result`
+    );
+
+    // Complete execution
+    state = resumeWithAIResponse(state, 'summary result');
+    state = runUntilPause(state);
+    expect(state.status).toBe('completed');
+
+    // Verify locals have values in assignment order (including filtered types)
+    const locals = state.callStack[0].locals;
+    expect(locals['inputData'].value).toBe('raw data');
+    // model filtered from context
+    expect(locals['ANALYZE_PROMPT'].value).toBe('Analyze this');
+    expect(locals['analyzed'].value).toBe('analysis result');
+    expect(locals['SUMMARIZE_PROMPT'].value).toBe('Summarize this');
+    expect(locals['summary'].value).toBe('summary result');
+
+    // Context at completion - now includes all final variables
+    expect(state.localContext).toEqual([
+      { name: 'inputData', value: 'raw data', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+      { name: 'analyzed', value: 'analysis result', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+      { name: 'summary', value: 'summary result', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+    ]);
+
+    // Verify formatted text context at completion - shows all variables in assignment order
+    const formatted3 = formatContextForAI(state.localContext, { includeInstructions: false });
+    expect(formatted3.text).toBe(
+      `  <entry> (current scope)
+    - inputData: raw data
+    - analyzed: analysis result
+    - summary: summary result`
+    );
+  });
+
+  test('deeply nested functions with prompt variables at each level', () => {
+    const ast = parse(`
+      const ROOT_PROMPT: prompt = "Root prompt"
+      const ROOT_DATA = "root data"
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+
+      function level1(input) {
+        const L1_PROMPT: prompt = "Level 1 prompt"
+        let l1Data = "level 1 data"
+        return level2(input)
+      }
+
+      function level2(input) {
+        const L2_PROMPT: prompt = "Level 2 prompt"
+        let l2Data = "level 2 data"
+        return do "Process {input}" m default
+      }
+
+      let result = level1("deep input")
+    `);
+
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    expect(state.status).toBe('awaiting_ai');
+    expect(state.pendingAI?.prompt).toBe('Process deep input');
+
+    // Local context: level2 frame only, L2_PROMPT filtered
+    expect(state.localContext).toEqual([
+      { name: 'input', value: 'deep input', type: null, isConst: false, frameName: 'level2', frameDepth: 2 },
+      { name: 'l2Data', value: 'level 2 data', type: null, isConst: false, frameName: 'level2', frameDepth: 2 },
+    ]);
+
+    // Global context: all frames, all prompts filtered, all models filtered
+    expect(state.globalContext).toEqual([
+      { name: 'ROOT_DATA', value: 'root data', type: null, isConst: true, frameName: '<entry>', frameDepth: 0 },
+      { name: 'input', value: 'deep input', type: null, isConst: false, frameName: 'level1', frameDepth: 1 },
+      { name: 'l1Data', value: 'level 1 data', type: null, isConst: false, frameName: 'level1', frameDepth: 1 },
+      { name: 'input', value: 'deep input', type: null, isConst: false, frameName: 'level2', frameDepth: 2 },
+      { name: 'l2Data', value: 'level 2 data', type: null, isConst: false, frameName: 'level2', frameDepth: 2 },
+    ]);
+
+    // Verify formatted output shows proper nesting without any prompts
+    const formatted = formatContextForAI(state.globalContext, { includeInstructions: false });
+    expect(formatted.text).toBe(
+      `  <entry> (entry)
+    - ROOT_DATA: root data
+
+    level1 (depth 1)
+      - input: deep input
+      - l1Data: level 1 data
+
+      level2 (current scope)
+        - input: deep input
+        - l2Data: level 2 data`
+    );
+  });
+
+  // ============================================================================
   // Context captured before AI calls
   // ============================================================================
 

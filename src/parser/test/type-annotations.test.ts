@@ -106,4 +106,47 @@ describe('Parser - Type Annotations', () => {
       typeAnnotation: null,
     });
   });
+
+  // ============================================================================
+  // Prompt type annotation
+  // ============================================================================
+
+  test('let with prompt type', () => {
+    const ast = parse('let x: prompt = "What is your name?"');
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      name: 'x',
+      typeAnnotation: 'prompt',
+      initializer: {
+        type: 'StringLiteral',
+        value: 'What is your name?',
+      },
+    });
+  });
+
+  test('const with prompt type', () => {
+    const ast = parse('const SYSTEM_PROMPT: prompt = "You are a helpful assistant"');
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'ConstDeclaration',
+      name: 'SYSTEM_PROMPT',
+      typeAnnotation: 'prompt',
+      initializer: {
+        type: 'StringLiteral',
+        value: 'You are a helpful assistant',
+      },
+    });
+  });
+
+  test('let with prompt type no initializer', () => {
+    const ast = parse('let x: prompt');
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      name: 'x',
+      typeAnnotation: 'prompt',
+      initializer: null,
+    });
+  });
 });

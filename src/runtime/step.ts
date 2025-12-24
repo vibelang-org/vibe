@@ -88,9 +88,14 @@ export function step(state: RuntimeState): RuntimeState {
     return state;
   }
 
-  // If no more instructions, we're done
+  // If no more instructions, we're done - rebuild context with final state
   if (state.instructionStack.length === 0) {
-    return { ...state, status: 'completed' };
+    return {
+      ...state,
+      status: 'completed',
+      localContext: buildLocalContext(state),
+      globalContext: buildGlobalContext(state),
+    };
   }
 
   // Rebuild context BEFORE executing the instruction
@@ -123,7 +128,12 @@ export function runUntilPause(state: RuntimeState): RuntimeState {
   }
   // Mark as completed if we ran out of instructions while running
   if (current.status === 'running' && current.instructionStack.length === 0) {
-    return { ...current, status: 'completed' };
+    return {
+      ...current,
+      status: 'completed',
+      localContext: buildLocalContext(current),
+      globalContext: buildGlobalContext(current),
+    };
   }
   return current;
 }

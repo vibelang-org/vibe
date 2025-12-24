@@ -25,7 +25,7 @@ export class SemanticAnalyzer {
   private visitStatement(node: AST.Statement): void {
     switch (node.type) {
       case 'LetDeclaration':
-        this.declare(node.name, 'variable', node.location);
+        this.declare(node.name, 'variable', node.location, { typeAnnotation: node.typeAnnotation });
         if (node.typeAnnotation) {
           this.validateTypeAnnotation(node.typeAnnotation, node.location);
         }
@@ -39,7 +39,7 @@ export class SemanticAnalyzer {
         break;
 
       case 'ConstDeclaration':
-        this.declare(node.name, 'constant', node.location);
+        this.declare(node.name, 'constant', node.location, { typeAnnotation: node.typeAnnotation });
         if (node.typeAnnotation) {
           this.validateTypeAnnotation(node.typeAnnotation, node.location);
         }
@@ -59,7 +59,7 @@ export class SemanticAnalyzer {
         if (!this.atTopLevel) {
           this.error('Functions can only be declared at global scope', node.location);
         }
-        this.declare(node.name, 'function', node.location, node.params.length);
+        this.declare(node.name, 'function', node.location, { paramCount: node.params.length });
         this.visitFunction(node);
         break;
 
@@ -132,6 +132,7 @@ export class SemanticAnalyzer {
 
       case 'DoExpression':
         this.visitExpression(node.prompt);
+        this.checkPromptType(node.prompt);
         this.checkModelType(node.model);
         // Check context variable if it's a variable reference
         if (node.context.kind === 'variable' && node.context.variable) {
@@ -150,10 +151,12 @@ export class SemanticAnalyzer {
 
       case 'VibeExpression':
         this.visitExpression(node.prompt);
+        this.checkPromptType(node.prompt);
         break;
 
       case 'AskExpression':
         this.visitExpression(node.prompt);
+        this.checkPromptType(node.prompt);
         this.checkModelType(node.model);
         // Check context variable if it's a variable reference
         if (node.context.kind === 'variable' && node.context.variable) {
@@ -239,13 +242,33 @@ export class SemanticAnalyzer {
     }
   }
 
+  /**
+   * Validates that prompt parameters are string literals or text/prompt typed variables.
+   * Rejects json typed variables and model references.
+   * Call visitExpression first before calling this method.
+   */
+  private checkPromptType(node: AST.Expression): void {
+    if (node.type !== 'Identifier') return;
+
+    const sym = this.symbols.lookup(node.name);
+    if (!sym) return; // Already reported by visitExpression
+
+    if (sym.kind === 'model') {
+      this.error(`Cannot use model '${node.name}' as prompt`, node.location);
+    } else if (sym.kind === 'function') {
+      this.error(`Cannot use function '${node.name}' as prompt`, node.location);
+    } else if (sym.typeAnnotation === 'json') {
+      this.error(`Cannot use json typed variable '${node.name}' as prompt`, node.location);
+    }
+  }
+
   private declare(
     name: string,
     kind: SymbolKind,
     location: SourceLocation,
-    paramCount?: number
+    options?: { paramCount?: number; typeAnnotation?: string | null }
   ): void {
-    if (!this.symbols.declare({ name, kind, location, paramCount })) {
+    if (!this.symbols.declare({ name, kind, location, ...options })) {
       this.error(`'${name}' is already declared`, location);
     }
   }
@@ -255,7 +278,7 @@ export class SemanticAnalyzer {
   }
 
   private validateTypeAnnotation(type: string, location: SourceLocation): void {
-    const validTypes = ['text', 'json'];
+    const validTypes = ['text', 'json', 'prompt'];
     if (!validTypes.includes(type)) {
       this.error(`Unknown type '${type}'`, location);
     }

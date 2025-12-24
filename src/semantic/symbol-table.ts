@@ -7,6 +7,7 @@ export interface Symbol {
   kind: SymbolKind;
   location: SourceLocation;
   paramCount?: number;
+  typeAnnotation?: string | null;
 }
 
 interface Scope {

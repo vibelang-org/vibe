@@ -130,8 +130,8 @@ let x = ask "Question?" myModel myContext
   test('ask in function body', () => {
     const ast = parse(`
 model myModel = { name: "test", apiKey: "key", url: "http://test" }
-function getUserInput(prompt) {
-  return ask prompt myModel default
+function getUserInput(message) {
+  return ask message myModel default
 }
 `);
     expect(ast.body).toHaveLength(2);
@@ -147,7 +147,7 @@ function getUserInput(prompt) {
               type: 'AskExpression',
               prompt: {
                 type: 'Identifier',
-                name: 'prompt',
+                name: 'message',
               },
               model: {
                 type: 'Identifier',

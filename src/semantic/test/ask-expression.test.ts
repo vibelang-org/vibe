@@ -109,8 +109,8 @@ let answer = ask question myModel default
   test('ask with function parameter - no errors', () => {
     const ast = parse(`
 model myModel = { name: "test", apiKey: "key", url: "http://test" }
-function getInput(prompt) {
-  return ask prompt myModel default
+function getInput(message) {
+  return ask message myModel default
 }
 `);
     const errors = analyze(ast);

@@ -25,6 +25,11 @@ describe('Semantic Analyzer - Type Validation', () => {
     expect(errors).toEqual([]);
   });
 
+  test('prompt type is valid', () => {
+    const errors = getErrors('let x: prompt = "What is your name?"');
+    expect(errors).toEqual([]);
+  });
+
   test('no type annotation is valid', () => {
     const errors = getErrors('let x = "hello"');
     expect(errors).toEqual([]);

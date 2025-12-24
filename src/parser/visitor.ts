@@ -58,8 +58,8 @@ class VibeAstVisitor extends BaseVibeVisitor {
     throw new Error('Unknown statement type');
   }
 
-  letDeclaration(ctx: { Let: IToken[]; Identifier: IToken[]; TextType?: IToken[]; JsonType?: IToken[]; expression?: CstNode[] }): AST.LetDeclaration {
-    const typeAnnotation = ctx.TextType ? 'text' : ctx.JsonType ? 'json' : null;
+  letDeclaration(ctx: { Let: IToken[]; Identifier: IToken[]; TextType?: IToken[]; JsonType?: IToken[]; PromptType?: IToken[]; expression?: CstNode[] }): AST.LetDeclaration {
+    const typeAnnotation = ctx.TextType ? 'text' : ctx.JsonType ? 'json' : ctx.PromptType ? 'prompt' : null;
     return {
       type: 'LetDeclaration',
       name: ctx.Identifier[0].image,
@@ -69,8 +69,8 @@ class VibeAstVisitor extends BaseVibeVisitor {
     };
   }
 
-  constDeclaration(ctx: { Const: IToken[]; Identifier: IToken[]; TextType?: IToken[]; JsonType?: IToken[]; expression: CstNode[] }): AST.ConstDeclaration {
-    const typeAnnotation = ctx.TextType ? 'text' : ctx.JsonType ? 'json' : null;
+  constDeclaration(ctx: { Const: IToken[]; Identifier: IToken[]; TextType?: IToken[]; JsonType?: IToken[]; PromptType?: IToken[]; expression: CstNode[] }): AST.ConstDeclaration {
+    const typeAnnotation = ctx.TextType ? 'text' : ctx.JsonType ? 'json' : ctx.PromptType ? 'prompt' : null;
     return {
       type: 'ConstDeclaration',
       name: ctx.Identifier[0].image,

@@ -203,6 +203,32 @@ describe('Context Building Functions', () => {
     expect(xVar?.value).toBe('hello');
   });
 
+  test('context filters out prompt type variables', () => {
+    const ast = parse(`
+      let systemPrompt: prompt = "You are a helpful assistant"
+      const question: prompt = "What is 2+2?"
+      let regularVar = "hello"
+    `);
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    const context = buildLocalContext(state);
+
+    // Prompt variables should be filtered out (they are instructions, not data)
+    const promptVar = context.find((v) => v.name === 'systemPrompt');
+    expect(promptVar).toBeUndefined();
+
+    const questionVar = context.find((v) => v.name === 'question');
+    expect(questionVar).toBeUndefined();
+
+    // Regular variable should still be in context
+    const regularVarCtx = context.find((v) => v.name === 'regularVar');
+    expect(regularVarCtx?.value).toBe('hello');
+
+    // Only the regular variable should be in context
+    expect(context).toHaveLength(1);
+  });
+
   test('full context array verification with nested blocks and function calls', () => {
     const ast = parse(`
       let outer = "outer_value"
