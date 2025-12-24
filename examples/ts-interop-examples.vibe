@@ -1,0 +1,301 @@
+// Examples of TypeScript interop blocks in Vibe
+// These show the proposed ts { } syntax
+
+// ==============================================================================
+// Example 1: Simple TypeScript Expressions
+// ==============================================================================
+
+model m = { name: "gpt-4", apiKey: "key", url: "http://test" }
+
+// Inline TS for simple operations
+let random = ts { Math.random() * 100 }
+let now = ts { Date.now() }
+let pi = ts { Math.PI }
+
+// Pass Vibe variables into TS
+let text = "hello world"
+let upper = ts(text) {
+  return text.toUpperCase();
+}
+
+let numbers = [1, 2, 3, 4, 5]
+let doubled = ts(numbers) {
+  return numbers.map(x => x * 2);
+}
+
+console.log("Doubled:", doubled)
+
+// ==============================================================================
+// Example 2: Complex Data Processing
+// ==============================================================================
+
+// Multi-line TypeScript with multiple operations
+let data = [
+  {name: "Alice", score: 85},
+  {name: "Bob", score: 92},
+  {name: "Charlie", score: 78}
+]
+
+let analysis = ts(data) {
+  // Full TypeScript power!
+  const avg = data.reduce((sum, d) => sum + d.score, 0) / data.length;
+  const topScorer = data.reduce((max, d) => d.score > max.score ? d : max);
+  const sorted = [...data].sort((a, b) => b.score - a.score);
+
+  return {
+    average: Math.round(avg * 10) / 10,
+    top_scorer: topScorer.name,
+    top_score: topScorer.score,
+    ranking: sorted.map(d => d.name)
+  };
+}
+
+// Use AI to interpret the analysis
+let interpretation = do "Interpret these test scores: {analysis}" m default
+
+console.log(interpretation)
+
+// ==============================================================================
+// Example 3: Working with JSON and Files
+// ==============================================================================
+
+// Load JSON file with TypeScript
+let config = ts {
+  const fs = require('fs');
+  return JSON.parse(fs.readFileSync('config.json', 'utf-8'));
+}
+
+// Process the config
+let apiUrl = config.api.url
+let apiKey = config.api.key
+
+// Use TS for string manipulation
+let formattedUrl = ts(apiUrl) {
+  return apiUrl.replace(/^http:/, 'https:').toLowerCase();
+}
+
+// ==============================================================================
+// Example 4: Named TypeScript Functions (Reusable)
+// ==============================================================================
+
+// Define reusable TS functions
+ts function calculateStats(numbers) {
+  const sum = numbers.reduce((a, b) => a + b, 0);
+  const avg = sum / numbers.length;
+  const sorted = [...numbers].sort((a, b) => a - b);
+  const median = sorted[Math.floor(sorted.length / 2)];
+
+  return {
+    sum,
+    average: avg,
+    median,
+    min: sorted[0],
+    max: sorted[sorted.length - 1]
+  };
+}
+
+ts function groupBy(array, key) {
+  return array.reduce((groups, item) => {
+    const value = item[key];
+    (groups[value] = groups[value] || []).push(item);
+    return groups;
+  }, {});
+}
+
+// Use the TS functions like Vibe functions
+let scores = [85, 92, 78, 90, 88]
+let stats = calculateStats(scores)
+
+let students = [
+  {name: "Alice", grade: "A"},
+  {name: "Bob", grade: "B"},
+  {name: "Charlie", grade: "A"}
+]
+let byGrade = groupBy(students, "grade")
+
+console.log("Stats:", stats)
+console.log("By Grade:", byGrade)
+
+// ==============================================================================
+// Example 5: Web API Integration
+// ==============================================================================
+
+// Fetch data from API using TypeScript
+let apiData = ts {
+  const axios = require('axios');
+  const response = await axios.get('https://api.example.com/data');
+  return response.data;
+}
+
+// Process with TS
+let processed = ts(apiData) {
+  return apiData.items
+    .filter(item => item.active)
+    .map(item => ({
+      id: item.id,
+      title: item.title.toUpperCase(),
+      value: Math.round(item.value * 100) / 100
+    }))
+    .slice(0, 10);
+}
+
+// Get AI summary
+let itemTitles = ts(processed) {
+  return processed.map(i => i.title).join(', ');
+}
+
+let summary = do "Summarize these items: {itemTitles}" m default
+
+// Format final output
+let report = ts(processed, summary) {
+  return JSON.stringify({
+    items: processed,
+    ai_summary: summary,
+    count: processed.length,
+    timestamp: new Date().toISOString()
+  }, null, 2);
+}
+
+console.log(report)
+
+// ==============================================================================
+// Example 6: Real-World Data Pipeline
+// ==============================================================================
+
+// Step 1: Load CSV with TypeScript
+let csvData = ts {
+  const fs = require('fs');
+  const csv = fs.readFileSync('sales.csv', 'utf-8');
+
+  // Parse CSV
+  const lines = csv.split('\n');
+  const headers = lines[0].split(',');
+
+  return lines.slice(1).map(line => {
+    const values = line.split(',');
+    return headers.reduce((obj, header, i) => {
+      obj[header] = values[i];
+      return obj;
+    }, {});
+  });
+}
+
+// Step 2: Transform with TypeScript
+let salesByCategory = ts(csvData) {
+  const grouped = csvData.reduce((groups, sale) => {
+    const category = sale.category;
+    if (!groups[category]) {
+      groups[category] = { total: 0, count: 0, items: [] };
+    }
+    groups[category].total += parseFloat(sale.amount);
+    groups[category].count += 1;
+    groups[category].items.push(sale);
+    return groups;
+  }, {});
+
+  // Calculate averages
+  for (const [category, data] of Object.entries(grouped)) {
+    data.average = data.total / data.count;
+  }
+
+  return grouped;
+}
+
+// Step 3: Get AI insights
+let categoryNames = ts(salesByCategory) {
+  return Object.keys(salesByCategory).join(', ');
+}
+
+let insights = do "Analyze these sales categories: {categoryNames}" m default
+
+// Step 4: Generate report with TypeScript
+let finalReport = ts(salesByCategory, insights) {
+  const categories = Object.entries(salesByCategory).map(([name, data]) => ({
+    name,
+    total: Math.round(data.total * 100) / 100,
+    average: Math.round(data.average * 100) / 100,
+    count: data.count
+  }));
+
+  return {
+    summary: {
+      total_categories: categories.length,
+      grand_total: categories.reduce((sum, c) => sum + c.total, 0),
+      overall_average: categories.reduce((sum, c) => sum + c.average, 0) / categories.length
+    },
+    categories: categories,
+    ai_insights: insights,
+    generated_at: new Date().toISOString()
+  };
+}
+
+// Output as JSON
+let jsonReport = ts(finalReport) {
+  return JSON.stringify(finalReport, null, 2);
+}
+
+console.log(jsonReport)
+
+// ==============================================================================
+// Example 7: TypeScript Module Block (Advanced)
+// ==============================================================================
+
+// Define a module of reusable utilities
+ts {
+  import { readFileSync, writeFileSync } from 'fs';
+  import axios from 'axios';
+  import cheerio from 'cheerio';
+
+  export function loadJSON(path) {
+    return JSON.parse(readFileSync(path, 'utf-8'));
+  }
+
+  export function saveJSON(path, data) {
+    writeFileSync(path, JSON.stringify(data, null, 2));
+  }
+
+  export async function scrapeWebsite(url, selector) {
+    const response = await axios.get(url);
+    const $ = cheerio.load(response.data);
+    const results = [];
+
+    $(selector).each((i, elem) => {
+      results.push({
+        text: $(elem).text().trim(),
+        html: $(elem).html()
+      });
+    });
+
+    return results;
+  }
+
+  export function formatCurrency(amount, currency = 'USD') {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: currency
+    }).format(amount);
+  }
+}
+
+// Use the exported functions
+let userConfig = loadJSON("config.json")
+let articles = await scrapeWebsite("https://news.example.com", "article.post")
+
+// Process articles with AI
+let articleTitles = ts(articles) {
+  return articles.map(a => a.text).join('\n');
+}
+
+let articleSummary = do "Summarize these articles: {articleTitles}" m default
+
+// Save results
+let outputData = {
+  articles: articles,
+  summary: articleSummary,
+  total: ts(articles) { return articles.length }
+}
+
+saveJSON("output.json", outputData)
+
+console.log("Scraped", articles.length, "articles")
+console.log("Summary:", articleSummary)
