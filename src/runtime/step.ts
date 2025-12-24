@@ -385,11 +385,14 @@ function execDeclareVar(
     [name]: { value: validatedValue, isConst, typeAnnotation: type },
   };
 
+  // Add variable to ordered entries for context tracking
+  const newOrderedEntries = [...frame.orderedEntries, { kind: 'variable' as const, name }];
+
   const newState: RuntimeState = {
     ...state,
     callStack: [
       ...state.callStack.slice(0, -1),
-      { ...frame, locals: newLocals },
+      { ...frame, locals: newLocals, orderedEntries: newOrderedEntries },
     ],
     executionLog: [
       ...state.executionLog,
@@ -729,11 +732,14 @@ function execCallFunction(state: RuntimeState, _funcName: string, argCount: numb
     // This enables lexical scoping - function can access global variables
     const newFrame = createFrame(funcName, 0);
     for (let i = 0; i < func.params.length; i++) {
-      newFrame.locals[func.params[i]] = {
+      const paramName = func.params[i];
+      newFrame.locals[paramName] = {
         value: args[i] ?? null,
         isConst: false,
         typeAnnotation: null,
       };
+      // Add parameter to ordered entries for context tracking
+      newFrame.orderedEntries.push({ kind: 'variable' as const, name: paramName });
     }
 
     // Push function body statements (in order, we pop from front)
@@ -840,9 +846,17 @@ function execAIDo(state: RuntimeState, model: string, context: AST.ContextSpecif
   const prompt = String(state.lastResult);
   const contextData = getContextForAI(state, context);
 
+  // Add prompt to ordered entries in current frame
+  const frame = currentFrame(state);
+  const newOrderedEntries = [...frame.orderedEntries, { kind: 'prompt' as const, aiType: 'do' as const, prompt }];
+
   return {
     ...state,
     status: 'awaiting_ai',
+    callStack: [
+      ...state.callStack.slice(0, -1),
+      { ...frame, orderedEntries: newOrderedEntries },
+    ],
     pendingAI: {
       type: 'do',
       prompt,
@@ -865,9 +879,17 @@ function execAIAsk(state: RuntimeState, model: string, context: AST.ContextSpeci
   const prompt = String(state.lastResult);
   const contextData = getContextForAI(state, context);
 
+  // Add prompt to ordered entries in current frame
+  const frame = currentFrame(state);
+  const newOrderedEntries = [...frame.orderedEntries, { kind: 'prompt' as const, aiType: 'ask' as const, prompt }];
+
   return {
     ...state,
     status: 'awaiting_user',
+    callStack: [
+      ...state.callStack.slice(0, -1),
+      { ...frame, orderedEntries: newOrderedEntries },
+    ],
     pendingAI: {
       type: 'ask',
       prompt,
@@ -890,9 +912,17 @@ function execAIVibe(state: RuntimeState, model: string, context: AST.ContextSpec
   const prompt = String(state.lastResult);
   const contextData = getContextForAI(state, context);
 
+  // Add prompt to ordered entries in current frame
+  const frame = currentFrame(state);
+  const newOrderedEntries = [...frame.orderedEntries, { kind: 'prompt' as const, aiType: 'vibe' as const, prompt }];
+
   return {
     ...state,
     status: 'awaiting_ai',
+    callStack: [
+      ...state.callStack.slice(0, -1),
+      { ...frame, orderedEntries: newOrderedEntries },
+    ],
     pendingAI: {
       type: 'vibe',
       prompt,

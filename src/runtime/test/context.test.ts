@@ -273,16 +273,16 @@ describe('Context Building Functions', () => {
 
       // Local context should only have function frame variables (depth 1 = called from entry)
       expect(localCtx).toEqual([
-        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
       ]);
 
       // Global context should have <entry> frame (depth 0) + function frame (depth 1)
       expect(globalCtx).toEqual([
-        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
-        { name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
+        { kind: 'variable', name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+        { kind: 'variable', name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
       ]);
     }
 
@@ -304,18 +304,18 @@ describe('Context Building Functions', () => {
 
       // Local context now includes blockVar (blocks share frame with function)
       expect(localCtxInBlock).toEqual([
-        { name: 'blockVar', value: 'block_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'blockVar', value: 'block_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
       ]);
 
       // Global context includes everything
       expect(globalCtxInBlock).toEqual([
-        { name: 'blockVar', value: 'block_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
-        { name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
-        { name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
+        { kind: 'variable', name: 'blockVar', value: 'block_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'funcLocal', value: 'func_local', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'input', value: 'arg_value', type: null, isConst: false, frameName: 'processData', frameDepth: 1 },
+        { kind: 'variable', name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+        { kind: 'variable', name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
       ]);
     }
 
@@ -349,9 +349,9 @@ describe('Context Building Functions', () => {
     // Should have outer, outerConst, and result (blockVar and funcLocal are gone)
     // All in <entry> frame at depth 0 since it's the only frame
     expect(finalLocalCtx).toEqual([
-      { name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
-      { name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
-      { name: 'result', value: 'arg_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+      { kind: 'variable', name: 'outer', value: 'outer_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
+      { kind: 'variable', name: 'outerConst', value: { key: 'json_value' }, type: 'json', isConst: true, frameName: '<entry>', frameDepth: 0 },
+      { kind: 'variable', name: 'result', value: 'arg_value', type: null, isConst: false, frameName: '<entry>', frameDepth: 0 },
     ]);
 
     // Local and global should be same when only one frame

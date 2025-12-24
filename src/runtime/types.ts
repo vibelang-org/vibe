@@ -19,6 +19,7 @@ export interface Variable {
 // Variable in context (for AI calls)
 // Note: Models are filtered out - they are config, not data for AI context
 export interface ContextVariable {
+  kind: 'variable';
   name: string;
   value: unknown;
   type: 'text' | 'json' | null;
@@ -28,11 +29,29 @@ export interface ContextVariable {
   frameDepth: number;     // 0 = deepest/current frame, higher = older frames
 }
 
+// Prompt in context (when AI function is called)
+export interface ContextPrompt {
+  kind: 'prompt';
+  aiType: 'do' | 'ask' | 'vibe';
+  prompt: string;
+  frameName: string;
+  frameDepth: number;
+}
+
+// Context entry - either a variable or a prompt
+export type ContextEntry = ContextVariable | ContextPrompt;
+
+// Ordered entry - tracks order of variable assignments and AI prompts in a frame
+export type FrameEntry =
+  | { kind: 'variable'; name: string }
+  | { kind: 'prompt'; aiType: 'do' | 'ask' | 'vibe'; prompt: string };
+
 // Stack frame (serializable - uses Record instead of Map)
 export interface StackFrame {
   name: string;
   locals: Record<string, Variable>;
   parentFrameIndex: number | null;  // Lexical parent frame for scope chain
+  orderedEntries: FrameEntry[];     // Track order of variable assignments and AI prompts
 }
 
 // AI operation history entry
@@ -78,8 +97,8 @@ export interface RuntimeState {
   executionLog: ExecutionEntry[];
 
   // Context (rebuilt before each instruction)
-  localContext: ContextVariable[];
-  globalContext: ContextVariable[];
+  localContext: ContextEntry[];
+  globalContext: ContextEntry[];
 
   // Pending async operation
   pendingAI: PendingAI | null;

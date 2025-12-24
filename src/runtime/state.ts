@@ -39,6 +39,7 @@ export function createFrame(name: string, parentFrameIndex: number | null = null
     name,
     locals: {},
     parentFrameIndex,
+    orderedEntries: [],
   };
 }
 

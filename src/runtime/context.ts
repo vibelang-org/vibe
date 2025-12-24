@@ -1,82 +1,114 @@
-import type { RuntimeState, ContextVariable } from './types';
+import type { RuntimeState, ContextVariable, ContextEntry, ContextPrompt } from './types';
 
 // Types that are filtered from context (config/instructions, not data for AI)
 const FILTERED_TYPES = ['model', 'prompt'];
 
-// Build local context - variables from current frame only
+// Build local context - entries from current frame only
 // Pure function: takes full state, returns context array
 // Note: Model and prompt variables are filtered out (they are config/instructions, not data for AI context)
-export function buildLocalContext(state: RuntimeState): ContextVariable[] {
+export function buildLocalContext(state: RuntimeState): ContextEntry[] {
   const frameIndex = state.callStack.length - 1;
   const frame = state.callStack[frameIndex];
   if (!frame) return [];
 
-  return Object.entries(frame.locals)
-    .filter(([, variable]) => !FILTERED_TYPES.includes(variable.typeAnnotation ?? ''))
-    .map(([name, variable]) => ({
-      name,
-      value: variable.value,
-      type: variable.typeAnnotation as 'text' | 'json' | null,
-      isConst: variable.isConst,
-      frameName: frame.name,
-      frameDepth: frameIndex, // Depth from entry: 0 = entry, higher = deeper in call stack
-    }));
+  return frame.orderedEntries
+    .flatMap((entry): ContextEntry[] => {
+      if (entry.kind === 'variable') {
+        const variable = frame.locals[entry.name];
+        if (!variable || FILTERED_TYPES.includes(variable.typeAnnotation ?? '')) {
+          return [];
+        }
+        return [{
+          kind: 'variable',
+          name: entry.name,
+          value: variable.value,
+          type: variable.typeAnnotation as 'text' | 'json' | null,
+          isConst: variable.isConst,
+          frameName: frame.name,
+          frameDepth: frameIndex,
+        }];
+      } else {
+        // Prompt entry
+        return [{
+          kind: 'prompt',
+          aiType: entry.aiType,
+          prompt: entry.prompt,
+          frameName: frame.name,
+          frameDepth: frameIndex,
+        }];
+      }
+    });
 }
 
-// Build global context - variables from all frames in call stack
+// Build global context - entries from all frames in call stack
 // Pure function: takes full state, returns context array
 // Note: Model and prompt variables are filtered out (they are config/instructions, not data for AI context)
-// Variables are returned with frameDepth: 0 = entry frame, higher = deeper in call stack
-export function buildGlobalContext(state: RuntimeState): ContextVariable[] {
+// Entries are returned with frameDepth: 0 = entry frame, higher = deeper in call stack
+export function buildGlobalContext(state: RuntimeState): ContextEntry[] {
   return state.callStack.flatMap((frame, frameIndex) => {
-    // frameDepth: 0 = entry (first in stack), higher = deeper calls
     const frameDepth = frameIndex;
 
-    return Object.entries(frame.locals)
-      .filter(([, variable]) => !FILTERED_TYPES.includes(variable.typeAnnotation ?? ''))
-      .map(([name, variable]) => ({
-        name,
-        value: variable.value,
-        type: variable.typeAnnotation as 'text' | 'json' | null,
-        isConst: variable.isConst,
-        frameName: frame.name,
-        frameDepth,
-      }));
+    return frame.orderedEntries.flatMap((entry): ContextEntry[] => {
+      if (entry.kind === 'variable') {
+        const variable = frame.locals[entry.name];
+        if (!variable || FILTERED_TYPES.includes(variable.typeAnnotation ?? '')) {
+          return [];
+        }
+        return [{
+          kind: 'variable',
+          name: entry.name,
+          value: variable.value,
+          type: variable.typeAnnotation as 'text' | 'json' | null,
+          isConst: variable.isConst,
+          frameName: frame.name,
+          frameDepth,
+        }];
+      } else {
+        // Prompt entry
+        return [{
+          kind: 'prompt',
+          aiType: entry.aiType,
+          prompt: entry.prompt,
+          frameName: frame.name,
+          frameDepth,
+        }];
+      }
+    });
   });
 }
 
 // Formatted context for AI consumption
 export interface FormattedContext {
   text: string;
-  variables: ContextVariable[];
+  variables: ContextEntry[];
 }
 
 // Format context for AI calls with instructional wrapping
 export function formatContextForAI(
-  context: ContextVariable[],
+  context: ContextEntry[],
   options?: { includeInstructions?: boolean }
 ): FormattedContext {
   const text = formatContextText(context, options?.includeInstructions ?? true);
   return { text, variables: context };
 }
 
-// Group variables by frame for structured output
-function groupByFrame(variables: ContextVariable[]): Map<string, ContextVariable[]> {
-  const groups = new Map<string, ContextVariable[]>();
+// Group entries by frame for structured output
+function groupByFrame(entries: ContextEntry[]): Map<string, ContextEntry[]> {
+  const groups = new Map<string, ContextEntry[]>();
 
-  for (const v of variables) {
-    const key = `${v.frameDepth}:${v.frameName}`;
+  for (const entry of entries) {
+    const key = `${entry.frameDepth}:${entry.frameName}`;
     const existing = groups.get(key) ?? [];
-    groups.set(key, [...existing, v]);
+    groups.set(key, [...existing, entry]);
   }
 
   return groups;
 }
 
 // Format context as text with optional instruction header
-// Variables are grouped by call stack frame in declaration order
+// Entries are grouped by call stack frame in execution order
 function formatContextText(
-  variables: ContextVariable[],
+  entries: ContextEntry[],
   includeInstructions: boolean
 ): string {
   const lines: string[] = [];
@@ -87,17 +119,17 @@ function formatContextText(
     lines.push('');
   }
 
-  if (variables.length > 0) {
-    formatFrameGroups(variables, lines);
+  if (entries.length > 0) {
+    formatFrameGroups(entries, lines);
   }
 
   return lines.join('\n').trimEnd();
 }
 
-// Format variables grouped by frame with indentation
+// Format entries grouped by frame with indentation
 // Depth 0 = entry (leftmost), higher depth = deeper in call stack (more indented)
-function formatFrameGroups(variables: ContextVariable[], lines: string[]): void {
-  const frameGroups = groupByFrame(variables);
+function formatFrameGroups(entries: ContextEntry[], lines: string[]): void {
+  const frameGroups = groupByFrame(entries);
   const sortedKeys = [...frameGroups.keys()].sort((a, b) => {
     const depthA = parseInt(a.split(':')[0]);
     const depthB = parseInt(b.split(':')[0]);
@@ -105,13 +137,13 @@ function formatFrameGroups(variables: ContextVariable[], lines: string[]): void 
   });
 
   // Find max depth to identify current scope
-  const maxDepth = Math.max(...variables.map((v) => v.frameDepth));
+  const maxDepth = Math.max(...entries.map((e) => e.frameDepth));
 
   for (const key of sortedKeys) {
-    const frameVars = frameGroups.get(key) ?? [];
-    if (frameVars.length === 0) continue;
+    const frameEntries = frameGroups.get(key) ?? [];
+    if (frameEntries.length === 0) continue;
 
-    const { frameName, frameDepth } = frameVars[0];
+    const { frameName, frameDepth } = frameEntries[0];
     // Label: entry at depth 0, current scope at max depth, otherwise show depth
     const scopeLabel =
       frameDepth === maxDepth
@@ -123,11 +155,16 @@ function formatFrameGroups(variables: ContextVariable[], lines: string[]): void 
     const indent = '  ' + '  '.repeat(frameDepth);
     lines.push(`${indent}${frameName} ${scopeLabel}`);
 
-    for (const v of frameVars) {
-      const typeStr = v.type ? ` (${v.type})` : '';
-      const valueStr =
-        typeof v.value === 'object' ? JSON.stringify(v.value) : String(v.value);
-      lines.push(`${indent}  - ${v.name}${typeStr}: ${valueStr}`);
+    for (const entry of frameEntries) {
+      if (entry.kind === 'variable') {
+        const typeStr = entry.type ? ` (${entry.type})` : '';
+        const valueStr =
+          typeof entry.value === 'object' ? JSON.stringify(entry.value) : String(entry.value);
+        lines.push(`${indent}  - ${entry.name}${typeStr}: ${valueStr}`);
+      } else {
+        // Prompt entry
+        lines.push(`${indent}  --> ${entry.aiType}: "${entry.prompt}"`);
+      }
     }
 
     lines.push('');
