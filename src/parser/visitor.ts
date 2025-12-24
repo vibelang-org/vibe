@@ -21,6 +21,13 @@ function parseStringLiteral(token: IToken): string {
   return raw.slice(1, -1).replace(/\\(.)/g, '$1');
 }
 
+// Helper to extract string value from a template literal token
+function parseTemplateLiteral(token: IToken): string {
+  const raw = token.image;
+  // Remove backticks and unescape
+  return raw.slice(1, -1).replace(/\\(.)/g, '$1');
+}
+
 class VibeAstVisitor extends BaseVibeVisitor {
   constructor() {
     super();
@@ -304,6 +311,7 @@ class VibeAstVisitor extends BaseVibeVisitor {
 
   primaryExpression(ctx: {
     StringLiteral?: IToken[];
+    TemplateLiteral?: IToken[];
     True?: IToken[];
     False?: IToken[];
     Identifier?: IToken[];
@@ -316,6 +324,14 @@ class VibeAstVisitor extends BaseVibeVisitor {
         type: 'StringLiteral',
         value: parseStringLiteral(ctx.StringLiteral[0]),
         location: tokenLocation(ctx.StringLiteral[0]),
+      };
+    }
+
+    if (ctx.TemplateLiteral) {
+      return {
+        type: 'TemplateLiteral',
+        value: parseTemplateLiteral(ctx.TemplateLiteral[0]),
+        location: tokenLocation(ctx.TemplateLiteral[0]),
       };
     }
 

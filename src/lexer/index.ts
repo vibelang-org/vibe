@@ -69,6 +69,11 @@ export const StringLiteral = token({
   pattern: /"([^"\\]|\\.)*"|'([^'\\]|\\.)*'/,
 });
 
+export const TemplateLiteral = token({
+  name: 'TemplateLiteral',
+  pattern: /`(?:[^`\\]|\\.|\r?\n)*`/,
+});
+
 // ============================================================================
 // Operators
 // ============================================================================
@@ -121,6 +126,7 @@ export const allTokens = [
 
   // Literals
   StringLiteral,
+  TemplateLiteral,
 
   // Identifier after keywords
   Identifier,

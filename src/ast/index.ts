@@ -105,6 +105,7 @@ export interface ExpressionStatement extends BaseNode {
 export type Expression =
   | Identifier
   | StringLiteral
+  | TemplateLiteral
   | BooleanLiteral
   | ObjectLiteral
   | ArrayLiteral
@@ -121,6 +122,11 @@ export interface Identifier extends BaseNode {
 
 export interface StringLiteral extends BaseNode {
   type: 'StringLiteral';
+  value: string;
+}
+
+export interface TemplateLiteral extends BaseNode {
+  type: 'TemplateLiteral';
   value: string;
 }
 

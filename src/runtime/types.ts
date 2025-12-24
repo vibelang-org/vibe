@@ -146,4 +146,7 @@ export type Instruction =
   | { op: 'literal'; value: unknown }
 
   // String interpolation
-  | { op: 'interpolate_string'; template: string };
+  | { op: 'interpolate_string'; template: string }
+
+  // Template literal interpolation (${var} syntax)
+  | { op: 'interpolate_template'; template: string };

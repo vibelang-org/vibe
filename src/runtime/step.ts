@@ -204,6 +204,9 @@ function executeInstruction(state: RuntimeState, instruction: Instruction): Runt
     case 'interpolate_string':
       return execInterpolateString(state, instruction.template);
 
+    case 'interpolate_template':
+      return execInterpolateTemplate(state, instruction.template);
+
     default:
       throw new Error(`Unknown instruction: ${(instruction as Instruction).op}`);
   }
@@ -266,6 +269,15 @@ function execExpression(state: RuntimeState, expr: AST.Expression): RuntimeState
         ...state,
         instructionStack: [
           { op: 'interpolate_string', template: expr.value },
+          ...state.instructionStack,
+        ],
+      };
+
+    case 'TemplateLiteral':
+      return {
+        ...state,
+        instructionStack: [
+          { op: 'interpolate_template', template: expr.value },
           ...state.instructionStack,
         ],
       };
@@ -949,6 +961,20 @@ function execInterpolateString(state: RuntimeState, template: string): RuntimeSt
       return String(found.variable.value);
     }
     return `{${name}}`;
+  });
+
+  return { ...state, lastResult: result };
+}
+
+// Template literal interpolation (${varName} syntax)
+function execInterpolateTemplate(state: RuntimeState, template: string): RuntimeState {
+  const result = template.replace(/\$\{(\w+)\}/g, (_, name) => {
+    // Walk scope chain to find variable
+    const found = lookupVariable(state, name);
+    if (found) {
+      return String(found.variable.value);
+    }
+    return `\${${name}}`;
   });
 
   return { ...state, lastResult: result };

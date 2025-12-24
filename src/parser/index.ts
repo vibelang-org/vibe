@@ -21,6 +21,7 @@ import {
   JsonType,
   PromptType,
   StringLiteral,
+  TemplateLiteral,
   Identifier,
   Equals,
   LParen,
@@ -270,6 +271,7 @@ class VibeParser extends CstParser {
   private primaryExpression = this.RULE('primaryExpression', () => {
     this.OR([
       { ALT: () => this.CONSUME(StringLiteral) },
+      { ALT: () => this.CONSUME(TemplateLiteral) },
       { ALT: () => this.CONSUME(True) },
       { ALT: () => this.CONSUME(False) },
       { ALT: () => this.SUBRULE(this.objectLiteralExpr) },
