@@ -38,6 +38,20 @@
 - [ ] Interactive chat (`examples/chat.vibe`)
   - Simple REPL chat demonstrating context management
 
+### VSCode Integration
+- [ ] Build VSCode LSP for Vibe
+  - [ ] Syntax highlighting
+  - [ ] Diagnostics (errors, warnings)
+  - [ ] Go to definition
+  - [ ] Hover information
+  - [ ] Autocomplete
+- [ ] Build debug support for VSCode
+  - [ ] Debug Adapter Protocol (DAP) implementation
+  - [ ] Breakpoints
+  - [ ] Step through execution
+  - [ ] Variable inspection
+  - [ ] Call stack visualization
+
 ### Claude Code Plugin Distribution
 - [ ] Package symbol-tree as shareable plugin
 
