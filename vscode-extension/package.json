@@ -37,13 +37,14 @@
     ]
   },
   "scripts": {
-    "vscode:prepublish": "npm run build",
-    "build": "node esbuild.js",
-    "watch": "node esbuild.js --watch",
+    "vscode:prepublish": "bun run build",
+    "build": "bun build src/extension.ts --outfile=out/extension.js --target=node --format=cjs --external=vscode && bun build src/server.ts --outfile=out/server.js --target=node --format=cjs",
+    "watch": "bun build src/extension.ts --outfile=out/extension.js --target=node --format=cjs --external=vscode --watch & bun build src/server.ts --outfile=out/server.js --target=node --format=cjs --watch",
     "compile": "tsc -p ./",
     "lint": "eslint src --ext ts",
     "test": "bun test src/test/",
-    "test:syntax": "npx vscode-tmgrammar-test -g syntaxes/vibe.tmLanguage.json src/test/syntax/*.vibe"
+    "test:syntax": "bunx vscode-tmgrammar-test -g syntaxes/vibe.tmLanguage.json src/test/syntax/*.vibe",
+    "test:all": "bun run test && bun run test:syntax"
   },
   "dependencies": {
     "vscode-languageclient": "^9.0.1",
@@ -53,7 +54,6 @@
   "devDependencies": {
     "@types/node": "^20.10.0",
     "@types/vscode": "^1.85.0",
-    "esbuild": "^0.20.0",
     "typescript": "^5.3.0",
     "vscode-tmgrammar-test": "^0.1.3"
   }

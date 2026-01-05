@@ -54,7 +54,7 @@
       "WebFetch(domain:claude.com)",
       "WebFetch(domain:github.com)",
       "Bash(findstr:*)",
-      "WebFetch(*)"
+      "WebFetch(domain:*)"
     ],
     "deny": [
 
