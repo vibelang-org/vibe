@@ -8,37 +8,35 @@
   - [ ] Auto-parallelize independent AI calls (no data dependencies)
   - [ ] Configurable concurrency limit
 
-### Language Features
-- [ ] Implement the `vibe` keyword (core complete, enhancements pending)
-  - [x] Parser: `vibe "prompt" model [cache]` syntax
-  - [x] AST: VibeExpression with model and cached fields
-  - [x] Runtime types: ScopeParam, PendingVibeGeneration, vibeCache
-  - [x] Scope param collection and vibe-specific AI prompt
-  - [x] Parse/validate AI-generated code (resumeWithVibeCode)
-  - [x] Execute generated function with scope params (by name matching)
-  - [x] Retry logic with error feedback (3 retries default)
-  - [x] Cache support (reuse generated function in loops)
-  - [ ] Instruction limit for generated code
-  - [x] Add `model` as a valid type annotation (so generated functions can use `m: model` instead of `m: json`)
-
 ### Context Management Features
 - [ ] Context checkpoints beyond local/global
 - [ ] Context orchestration functions
 - [ ] Variable visibility modifiers
 
-### Documentation
-- [x] Create comprehensive Vibe language reference document
-  - [x] Syntax overview (types, variables, expressions)
-  - [x] Control flow (if/else, for-in, while)
-  - [x] AI integration (do expressions, models, context modes)
-  - [x] Tool system (built-in tools, custom tools)
-  - [x] TS blocks and interop
-  - [x] Integrate into AI system context (always loaded)
+### Permission System
+- [ ] Command permission scheme (like Claude Code settings)
+  - [ ] Config file format (`.vibe/settings.json` or `vibe.config.json`)
+  - [ ] Allow/deny lists with glob patterns for tools and commands
+  - [ ] Interactive prompts for unknown/dangerous operations
+  - [ ] Global config (`~/.vibe/settings.json`) and project config
+  - [ ] CLI flags: `--yes-all`, `--safe-mode`
 
-### Integration Tests & Examples
-- [x] Tool-calling integration test with real AI (glob, readFile, writeFile, edit)
-- [ ] Real-world example: number guessing game
-- [ ] Real-world example: file organizer script
+### Code Generation Tool
+- [ ] Sandboxed TypeScript execution at runtime
+  - [ ] Subprocess execution via `Bun.spawn()` for isolation
+  - [ ] Timeout enforcement (default 30s, kill process if exceeded)
+  - [ ] Temp file management (write code, execute, cleanup)
+  - [ ] Capture stdout/stderr as result
+
+### Real-World Examples
+- [ ] Code review assistant (`examples/code-review.vibe`)
+  - Takes git diff, AI analyzes, outputs structured review
+- [ ] Changelog generator (`examples/changelog.vibe`)
+  - Reads git log between tags, AI summarizes into categories
+- [ ] File organizer (`examples/file-organizer.vibe`)
+  - Scans directory, AI categorizes, moves files to folders
+- [ ] Interactive chat (`examples/chat.vibe`)
+  - Simple REPL chat demonstrating context management
 
 ### Claude Code Plugin Distribution
 - [ ] Package symbol-tree as shareable plugin

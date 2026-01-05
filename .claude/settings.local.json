@@ -53,12 +53,11 @@
       "WebFetch(domain:www.anthropic.com)",
       "WebFetch(domain:claude.com)",
       "WebFetch(domain:github.com)",
-      "Bash(findstr:*)"
+      "Bash(findstr:*)",
+      "WebFetch(*)"
     ],
     "deny": [
-      "Bash(rm:*)",
-      "Bash(rmdir:*)",
-      "Bash(del:*)",
+
       "Bash(git push --force:*)",
       "Bash(git reset --hard:*)",
       "Bash(git clean:*)"
