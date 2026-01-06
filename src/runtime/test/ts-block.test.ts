@@ -441,4 +441,101 @@ describe('Runtime - TypeScript Blocks', () => {
       expect(tsError.body).toContain('nonExistentMethod');
     }
   });
+
+  // ============================================================================
+  // Const object mutation prevention
+  // ============================================================================
+
+  test('const object cannot be mutated in ts block', async () => {
+    const ast = parse(`
+      const data:json = {name: "alice", count: 5}
+      let result = ts(data) {
+        data.name = "modified"
+        return data.name
+      }
+    `);
+    const runtime = new Runtime(ast, createMockProvider());
+
+    // Bun uses "Attempted to assign to readonly property"
+    await expect(runtime.run()).rejects.toThrow(/readonly property/);
+  });
+
+  test('const array cannot be mutated in ts block', async () => {
+    const ast = parse(`
+      const items:json = [1, 2, 3]
+      let result = ts(items) {
+        items.push(4)
+        return items
+      }
+    `);
+    const runtime = new Runtime(ast, createMockProvider());
+
+    await expect(runtime.run()).rejects.toThrow(/readonly property/);
+  });
+
+  test('const nested object cannot be mutated in ts block', async () => {
+    const ast = parse(`
+      const data:json = {user: {name: "alice", profile: {age: 30}}}
+      let result = ts(data) {
+        data.user.profile.age = 99
+        return data.user.profile.age
+      }
+    `);
+    const runtime = new Runtime(ast, createMockProvider());
+
+    await expect(runtime.run()).rejects.toThrow(/readonly property/);
+  });
+
+  test('let object CAN be mutated in ts block', async () => {
+    const ast = parse(`
+      let data:json = {name: "alice", count: 5}
+      let result = ts(data) {
+        data.name = "modified"
+        return data.name
+      }
+    `);
+    const runtime = new Runtime(ast, createMockProvider());
+    await runtime.run();
+
+    expect(runtime.getValue('result')).toBe('modified');
+  });
+
+  test('const object can be read but not modified', async () => {
+    const ast = parse(`
+      const data:json = {items: [1, 2, 3], name: "test"}
+      let length = ts(data) { return data.items.length }
+      let name = ts(data) { return data.name }
+    `);
+    const runtime = new Runtime(ast, createMockProvider());
+    await runtime.run();
+
+    expect(runtime.getValue('length')).toBe(3);
+    expect(runtime.getValue('name')).toBe('test');
+  });
+
+  test('const array elements cannot be replaced in ts block', async () => {
+    const ast = parse(`
+      const items:json = [1, 2, 3]
+      let result = ts(items) {
+        items[0] = 999
+        return items[0]
+      }
+    `);
+    const runtime = new Runtime(ast, createMockProvider());
+
+    await expect(runtime.run()).rejects.toThrow(/readonly property/);
+  });
+
+  test('const object with array cannot have array items pushed', async () => {
+    const ast = parse(`
+      const data:json = {items: [1, 2, 3]}
+      let result = ts(data) {
+        data.items.push(4)
+        return data.items.length
+      }
+    `);
+    const runtime = new Runtime(ast, createMockProvider());
+
+    await expect(runtime.run()).rejects.toThrow(/readonly property/);
+  });
 });

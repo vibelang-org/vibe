@@ -6,6 +6,29 @@ import { lookupVariable } from './variables';
 import { getImportedValue } from '../modules';
 
 /**
+ * Deep freeze an object to prevent any mutation.
+ * Used to enforce const semantics for objects passed to ts blocks.
+ */
+function deepFreeze<T>(obj: T): T {
+  if (obj === null || typeof obj !== 'object') {
+    return obj;
+  }
+
+  // Freeze the object itself
+  Object.freeze(obj);
+
+  // Recursively freeze all properties
+  for (const key of Object.keys(obj)) {
+    const value = (obj as Record<string, unknown>)[key];
+    if (value !== null && typeof value === 'object' && !Object.isFrozen(value)) {
+      deepFreeze(value);
+    }
+  }
+
+  return obj;
+}
+
+/**
  * String interpolation - {varName} syntax.
  */
 export function execInterpolateString(state: RuntimeState, template: string): RuntimeState {
@@ -59,7 +82,12 @@ export function execTsEval(state: RuntimeState, params: string[], body: string):
     // First try regular variables
     const found = lookupVariable(state, name);
     if (found) {
-      return found.variable.value;
+      const value = found.variable.value;
+      // Freeze const objects to prevent mutation in ts blocks
+      if (found.variable.isConst && value !== null && typeof value === 'object') {
+        return deepFreeze(value);
+      }
+      return value;
     }
     // Then try imported values
     const imported = getImportedValue(state, name);

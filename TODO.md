@@ -12,6 +12,14 @@
 - [ ] Context checkpoints beyond local/global
 - [ ] Context orchestration functions
 - [ ] Variable visibility modifiers
+- [ ] Implement `compress` keyword for context compression
+  - [ ] `compress("prompt")` - compress context with custom prompt
+  - [ ] Consider `aicompress` vs `compress` naming
+
+### Cleanup
+- [ ] Remove all `do` keyword references from project (replaced by `vibe`)
+- [ ] Remove `cache` parameter from `vibe` keyword (no longer needed)
+- [ ] Fix all TypeScript errors (`bun tsc --noEmit`)
 
 ### Permission System
 - [ ] Command permission scheme (like Claude Code settings)
@@ -20,13 +28,6 @@
   - [ ] Interactive prompts for unknown/dangerous operations
   - [ ] Global config (`~/.vibe/settings.json`) and project config
   - [ ] CLI flags: `--yes-all`, `--safe-mode`
-
-### Code Generation Tool
-- [ ] Sandboxed TypeScript execution at runtime
-  - [ ] Subprocess execution via `Bun.spawn()` for isolation
-  - [ ] Timeout enforcement (default 30s, kill process if exceeded)
-  - [ ] Temp file management (write code, execute, cleanup)
-  - [ ] Capture stdout/stderr as result
 
 ### Real-World Examples
 - [ ] Code review assistant (`examples/code-review.vibe`)
@@ -56,6 +57,17 @@
 - [ ] Package symbol-tree as shareable plugin
 
 ## Completed (Last 10)
+
+- [x] Runtime safety for const objects in ts blocks
+  - [x] Deep freeze const JSON objects before passing to ts blocks
+  - [x] Added 'use strict' to AsyncFunction for proper error throwing
+  - [x] Const objects/arrays cannot be mutated; let objects can be
+
+- [x] Code Generation Tool (bash, runCode)
+  - [x] `bash` tool using Bun's cross-platform shell via temp script
+  - [x] `runCode` tool with subprocess isolation and scope injection
+  - [x] Unique run folders (.vibe-cache/r1, r2...) with mutex for concurrency
+  - [x] Timeout enforcement with process kill
 
 - [x] AI-initiated tool calling (Phase 5)
   - [x] Tool schema conversion for OpenAI, Anthropic, Google providers

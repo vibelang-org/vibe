@@ -39,7 +39,9 @@ export async function evalTsBlock(
   let fn = functionCache.get(cacheKey);
   if (!fn) {
     try {
-      fn = new AsyncFunction(...params, body);
+      // Prepend 'use strict' to ensure frozen object mutations throw errors
+      const strictBody = `'use strict';\n${body}`;
+      fn = new AsyncFunction(...params, strictBody);
       functionCache.set(cacheKey, fn);
     } catch (error) {
       // Syntax error in TS block
