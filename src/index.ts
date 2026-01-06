@@ -92,7 +92,7 @@ async function main(): Promise<void> {
     }
 
     // Create runtime with logging option
-    const runtime = new Runtime(
+    const runtime: Runtime = new Runtime(
       ast,
       createRealAIProvider(() => runtime.getState()),
       { basePath: filePath, logAiInteractions: logAi }
@@ -102,9 +102,9 @@ async function main(): Promise<void> {
 
     // Dump AI interactions if logging was enabled (auto-saved by Runtime)
     if (logAi) {
-      const interactions = runtime.getAIInteractions();
-      if (interactions.length > 0) {
-        dumpAIInteractions(interactions);
+      const state = runtime.getState();
+      if (state.aiInteractions.length > 0) {
+        dumpAIInteractions(state);
       }
     }
 

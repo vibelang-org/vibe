@@ -8,7 +8,13 @@ import {
   buildGlobalContext,
   stepUntilCondition,
   type ContextVariable,
+  type ContextEntry,
 } from '../index';
+
+// Helper to filter context entries to only variables
+function getVariables(entries: ContextEntry[]): ContextVariable[] {
+  return entries.filter((e): e is ContextVariable => e.kind === 'variable');
+}
 
 describe('Context Building Functions', () => {
   test('buildLocalContext returns empty array for initial state', () => {
@@ -28,16 +34,17 @@ describe('Context Building Functions', () => {
     state = runUntilPause(state);
 
     const context = buildLocalContext(state);
-    expect(context).toHaveLength(2);
+    const variables = getVariables(context);
+    expect(variables).toHaveLength(2);
 
-    const xVar = context.find((v) => v.name === 'x');
+    const xVar = variables.find((v) => v.name === 'x');
     expect(xVar).toBeDefined();
     expect(xVar?.value).toBe('hello');
     expect(xVar?.type).toBe('text'); // Inferred from string value
     expect(xVar?.frameName).toBe('<entry>');
     expect(xVar?.frameDepth).toBe(0);
 
-    const yVar = context.find((v) => v.name === 'y');
+    const yVar = variables.find((v) => v.name === 'y');
     expect(yVar).toBeDefined();
     expect(yVar?.value).toEqual({ key: 'value' });
     expect(yVar?.type).toBe('json');
@@ -67,13 +74,14 @@ describe('Context Building Functions', () => {
 
     // After completion, only main frame remains
     const context = buildGlobalContext(state);
+    const variables = getVariables(context);
 
-    const outerVar = context.find((v) => v.name === 'outer');
+    const outerVar = variables.find((v) => v.name === 'outer');
     expect(outerVar).toBeDefined();
     expect(outerVar?.frameName).toBe('<entry>');
     expect(outerVar?.frameDepth).toBe(0);
 
-    const resultVar = context.find((v) => v.name === 'result');
+    const resultVar = variables.find((v) => v.name === 'result');
     expect(resultVar).toBeDefined();
     expect(resultVar?.frameName).toBe('<entry>');
     expect(resultVar?.frameDepth).toBe(0);
@@ -97,7 +105,7 @@ describe('Context Building Functions', () => {
 
     // After declaring 'a', step once more and context should reflect it
     state = step(state);
-    expect(state.localContext.some((v) => v.name === 'a')).toBe(true);
+    expect(getVariables(state.localContext).some((v) => v.name === 'a')).toBe(true);
   });
 
   test('context includes correct type annotations', () => {
@@ -109,11 +117,12 @@ describe('Context Building Functions', () => {
     state = runUntilPause(state);
 
     const context = buildLocalContext(state);
+    const variables = getVariables(context);
 
-    const textVar = context.find((v) => v.name === 'textVar');
+    const textVar = variables.find((v) => v.name === 'textVar');
     expect(textVar?.type).toBe('text'); // Inferred from string value
 
-    const jsonVar = context.find((v) => v.name === 'jsonVar');
+    const jsonVar = variables.find((v) => v.name === 'jsonVar');
     expect(jsonVar?.type).toBe('json');
   });
 
@@ -127,7 +136,7 @@ describe('Context Building Functions', () => {
 
     // With snapshotting, context preserves history: both 'initial' and 'updated' entries
     const context = buildLocalContext(state);
-    const xEntries = context.filter((v) => v.name === 'x');
+    const xEntries = getVariables(context).filter((v) => v.name === 'x');
     expect(xEntries).toHaveLength(2);
     expect(xEntries[0]?.value).toBe('initial');
     expect(xEntries[1]?.value).toBe('updated');
@@ -152,9 +161,10 @@ describe('Context Building Functions', () => {
     // If we got inside the function, check global context with frame depths
     if (state.callStack.length >= 2) {
       const globalCtx = buildGlobalContext(state);
+      const globalVars = getVariables(globalCtx);
 
       // Outer should be from <entry> frame (depth 0 = entry)
-      const outerVar = globalCtx.find((v) => v.name === 'outer');
+      const outerVar = globalVars.find((v) => v.name === 'outer');
       expect(outerVar).toBeDefined();
       expect(outerVar?.frameName).toBe('<entry>');
       expect(outerVar?.frameDepth).toBe(0); // Entry frame is always depth 0
@@ -165,7 +175,7 @@ describe('Context Building Functions', () => {
 
     // After completion, result should be set with correct frame info
     const finalContext = buildLocalContext(state);
-    const resultVar = finalContext.find((v) => v.name === 'result');
+    const resultVar = getVariables(finalContext).find((v) => v.name === 'result');
     expect(resultVar?.value).toBe('inner');
     expect(resultVar?.frameName).toBe('<entry>');
     expect(resultVar?.frameDepth).toBe(0);
@@ -196,13 +206,14 @@ describe('Context Building Functions', () => {
     state = runUntilPause(state);
 
     const context = buildLocalContext(state);
+    const variables = getVariables(context);
 
     // Model should be filtered out of context (it's config, not data for AI)
-    const modelVar = context.find((v) => v.name === 'm');
+    const modelVar = variables.find((v) => v.name === 'm');
     expect(modelVar).toBeUndefined();
 
     // Regular variable should still be in context
-    const xVar = context.find((v) => v.name === 'x');
+    const xVar = variables.find((v) => v.name === 'x');
     expect(xVar?.value).toBe('hello');
   });
 
@@ -216,20 +227,21 @@ describe('Context Building Functions', () => {
     state = runUntilPause(state);
 
     const context = buildLocalContext(state);
+    const variables = getVariables(context);
 
     // Prompt variables should be filtered out (they are instructions, not data)
-    const promptVar = context.find((v) => v.name === 'systemPrompt');
+    const promptVar = variables.find((v) => v.name === 'systemPrompt');
     expect(promptVar).toBeUndefined();
 
-    const questionVar = context.find((v) => v.name === 'question');
+    const questionVar = variables.find((v) => v.name === 'question');
     expect(questionVar).toBeUndefined();
 
     // Regular variable should still be in context
-    const regularVarCtx = context.find((v) => v.name === 'regularVar');
+    const regularVarCtx = variables.find((v) => v.name === 'regularVar');
     expect(regularVarCtx?.value).toBe('hello');
 
     // Only the regular variable should be in context
-    expect(context).toHaveLength(1);
+    expect(variables).toHaveLength(1);
   });
 
   test('full context array verification with nested blocks and function calls', () => {
@@ -252,8 +264,8 @@ describe('Context Building Functions', () => {
     let state = createInitialState(ast);
 
     // Helper to normalize context for comparison (sort by name)
-    const normalizeContext = (ctx: ContextVariable[]) =>
-      [...ctx].sort((a, b) => a.name.localeCompare(b.name));
+    const normalizeContext = (ctx: ContextEntry[]) =>
+      [...getVariables(ctx)].sort((a, b) => a.name.localeCompare(b.name));
 
     // Step until we're inside the function (2 frames)
     state = stepUntilCondition(state, (s) => s.callStack.length >= 2);

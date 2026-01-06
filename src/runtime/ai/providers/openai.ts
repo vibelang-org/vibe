@@ -99,7 +99,7 @@ export async function executeOpenAI(request: AIRequest): Promise<AIResponse> {
     // Add reasoning effort if thinking level specified
     const thinkingLevel = model.thinkingLevel as ThinkingLevel | undefined;
     if (thinkingLevel) {
-      (params as Record<string, unknown>).reasoning_effort = REASONING_EFFORT_MAP[thinkingLevel];
+      (params as unknown as Record<string, unknown>).reasoning_effort = REASONING_EFFORT_MAP[thinkingLevel];
     }
 
     // Add structured output format if target type specified
@@ -137,7 +137,7 @@ export async function executeOpenAI(request: AIRequest): Promise<AIResponse> {
     const finishReason = completion.choices[0]?.finish_reason;
 
     // Extract usage including cached and reasoning tokens
-    const rawUsage = completion.usage as Record<string, unknown> | undefined;
+    const rawUsage = completion.usage as unknown as Record<string, unknown> | undefined;
     const promptDetails = rawUsage?.prompt_tokens_details as Record<string, unknown> | undefined;
     const completionDetails = rawUsage?.completion_tokens_details as Record<string, unknown> | undefined;
     const usage = rawUsage
@@ -152,11 +152,15 @@ export async function executeOpenAI(request: AIRequest): Promise<AIResponse> {
     // Parse tool calls if present
     let toolCalls: AIToolCall[] | undefined;
     if (message?.tool_calls?.length) {
-      toolCalls = message.tool_calls.map((tc) => ({
-        id: tc.id,
-        toolName: tc.function.name,
-        args: JSON.parse(tc.function.arguments),
-      }));
+      toolCalls = message.tool_calls
+        .filter((tc): tc is OpenAI.ChatCompletionMessageToolCall & { function: { name: string; arguments: string } } =>
+          'function' in tc && tc.function !== undefined
+        )
+        .map((tc) => ({
+          id: tc.id,
+          toolName: tc.function.name,
+          args: JSON.parse(tc.function.arguments),
+        }));
     }
 
     // Determine stop reason

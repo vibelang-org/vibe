@@ -125,7 +125,7 @@ describe('executeWithTools', () => {
       prompt: 'Hello',
       contextText: '',
       targetType: null,
-      model: { name: 'test', apiKey: 'key' },
+      model: { name: 'test', apiKey: 'key', url: null },
     };
 
     const mockResponse: AIResponse = {
@@ -156,7 +156,7 @@ describe('executeWithTools', () => {
       prompt: "What's the weather?",
       contextText: '',
       targetType: null,
-      model: { name: 'test', apiKey: 'key' },
+      model: { name: 'test', apiKey: 'key', url: null },
     };
 
     // First response has tool call, second is final
@@ -207,7 +207,7 @@ describe('executeWithTools', () => {
       prompt: 'Do two steps',
       contextText: '',
       targetType: null,
-      model: { name: 'test', apiKey: 'key' },
+      model: { name: 'test', apiKey: 'key', url: null },
     };
 
     let callCount = 0;
@@ -260,7 +260,7 @@ describe('executeWithTools', () => {
       prompt: 'Loop forever',
       contextText: '',
       targetType: null,
-      model: { name: 'test', apiKey: 'key' },
+      model: { name: 'test', apiKey: 'key', url: null },
     };
 
     // Always returns tool call

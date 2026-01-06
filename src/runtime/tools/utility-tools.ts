@@ -3,7 +3,7 @@ import type { RegisteredTool } from './types';
 /**
  * Utility tools: env, sleep, now, jsonParse, jsonStringify, print, random, uuid
  */
-export const utilityTools: RegisteredTool[] = [
+export const utilityTools = [
   {
     name: 'env',
     kind: 'builtin',
@@ -193,4 +193,4 @@ export const utilityTools: RegisteredTool[] = [
       return crypto.randomUUID();
     },
   },
-];
+] satisfies RegisteredTool[];

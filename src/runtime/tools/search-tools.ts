@@ -4,7 +4,7 @@ import { validatePathInSandbox } from './security';
 /**
  * File search tools: glob, grep
  */
-export const searchTools: RegisteredTool[] = [
+export const searchTools = [
   {
     name: 'glob',
     kind: 'builtin',
@@ -131,4 +131,4 @@ export const searchTools: RegisteredTool[] = [
       return results;
     },
   },
-];
+] satisfies RegisteredTool[];

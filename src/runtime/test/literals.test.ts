@@ -4,8 +4,8 @@ import { Runtime, type AIProvider } from '../index';
 
 describe('Runtime - Object and Array Literals', () => {
   const mockProvider: AIProvider = {
-    execute: async (prompt: string) => prompt,
-    generateCode: async () => '',
+    execute: async (prompt: string) => ({ value: prompt }),
+    generateCode: async () => ({ value: '' }),
     askUser: async () => '',
   };
 

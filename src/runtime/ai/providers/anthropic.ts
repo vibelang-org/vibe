@@ -36,9 +36,8 @@ function buildOutputFormat(targetType: TargetType): Record<string, unknown> | nu
     return null;
   }
 
-  // json/json[] types can't use structured output - unknown schema
-  const isJsonType = targetType === 'json' || targetType === 'json[]';
-  if (isJsonType) {
+  // json type can't use structured output - unknown schema
+  if (targetType === 'json') {
     return null;
   }
 
@@ -186,41 +185,44 @@ export async function executeAnthropic(request: AIRequest): Promise<AIResponse> 
     }
 
     // Make API request - use beta endpoint only when needed
+    // Response type is Message (non-streaming since we don't pass stream: true)
     const response = betas.length > 0
       ? await client.beta.messages.create({
           ...params,
           betas,
         } as Parameters<typeof client.beta.messages.create>[0])
-      : await client.messages.create(params as Parameters<typeof client.messages.create>[0]);
+      : await client.messages.create(params as unknown as Parameters<typeof client.messages.create>[0]);
+
+    // Cast to Message type (we know it's not streaming)
+    const message = response as Anthropic.Message;
 
     // Extract text content from response
-    const textBlock = response.content.find((block) => block.type === 'text');
-    const content = textBlock?.type === 'text' ? textBlock.text : '';
+    const textBlock = message.content.find((block): block is Anthropic.TextBlock => block.type === 'text');
+    const content = textBlock?.text ?? '';
 
     // Extract tool_use blocks
-    const toolUseBlocks = response.content.filter(
-      (block): block is { type: 'tool_use'; id: string; name: string; input: Record<string, unknown> } =>
-        block.type === 'tool_use'
+    const toolUseBlocks = message.content.filter(
+      (block): block is Anthropic.ToolUseBlock => block.type === 'tool_use'
     );
     let toolCalls: AIToolCall[] | undefined;
     if (toolUseBlocks.length > 0) {
       toolCalls = toolUseBlocks.map((block) => ({
         id: block.id,
         toolName: block.name,
-        args: block.input,
+        args: block.input as Record<string, unknown>,
       }));
     }
 
     // Determine stop reason
     const stopReason =
-      response.stop_reason === 'tool_use'
+      message.stop_reason === 'tool_use'
         ? 'tool_use'
-        : response.stop_reason === 'max_tokens'
+        : message.stop_reason === 'max_tokens'
           ? 'length'
           : 'end';
 
     // Extract usage including cache and thinking tokens
-    const rawUsage = response.usage as Record<string, unknown> | undefined;
+    const rawUsage = message.usage as unknown as Record<string, unknown> | undefined;
     const usage = rawUsage
       ? {
           inputTokens: Number(rawUsage.input_tokens ?? 0),
@@ -288,7 +290,7 @@ async function executeWithOverrideMessages(
     const content = textBlock?.text ?? '';
 
     // Extract usage
-    const rawUsage = response.usage as Record<string, unknown> | undefined;
+    const rawUsage = response.usage as unknown as Record<string, unknown> | undefined;
     const usage = rawUsage
       ? {
           inputTokens: Number(rawUsage.input_tokens ?? 0),

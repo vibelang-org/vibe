@@ -4,7 +4,7 @@ import { validatePathInSandbox } from './security';
 /**
  * File operation tools: read, write, append, exists, list, edit
  */
-export const fileTools: RegisteredTool[] = [
+export const fileTools = [
   {
     name: 'readFile',
     kind: 'builtin',
@@ -225,4 +225,4 @@ export const fileTools: RegisteredTool[] = [
       return true;
     },
   },
-];
+] satisfies RegisteredTool[];

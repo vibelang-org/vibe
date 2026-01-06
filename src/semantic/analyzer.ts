@@ -469,7 +469,7 @@ export class SemanticAnalyzer {
     name: string,
     kind: SymbolKind,
     location: SourceLocation,
-    options?: { paramCount?: number; typeAnnotation?: string | null }
+    options?: { paramCount?: number; typeAnnotation?: string | null; paramTypes?: string[]; returnType?: string | null }
   ): void {
     if (!this.symbols.declare({ name, kind, location, ...options })) {
       this.error(`'${name}' is already declared`, location);

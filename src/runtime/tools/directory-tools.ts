@@ -4,7 +4,7 @@ import { validatePathInSandbox } from './security';
 /**
  * Directory operation tools: mkdir, dirExists
  */
-export const directoryTools: RegisteredTool[] = [
+export const directoryTools = [
   {
     name: 'mkdir',
     kind: 'builtin',
@@ -67,4 +67,4 @@ export const directoryTools: RegisteredTool[] = [
       }
     },
   },
-];
+] satisfies RegisteredTool[];

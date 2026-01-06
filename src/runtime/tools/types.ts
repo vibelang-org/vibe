@@ -69,3 +69,21 @@ export function isVibeToolValue(value: unknown): value is VibeToolValue {
     (value as VibeToolValue).__vibeTool === true
   );
 }
+
+// Registered tool in the registry
+export interface RegisteredTool {
+  name: string;
+  kind: 'builtin' | 'user';
+  schema: ToolSchema;
+  executor: ToolExecutor;
+}
+
+// Tool registry interface
+export interface ToolRegistry {
+  register(tool: RegisteredTool): void;
+  registerAll(tools: RegisteredTool[]): void;
+  get(name: string): RegisteredTool | undefined;
+  has(name: string): boolean;
+  list(): RegisteredTool[];
+  getSchemas(): ToolSchema[];
+}

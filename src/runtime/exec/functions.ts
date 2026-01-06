@@ -12,7 +12,7 @@ import { validateAndCoerce } from '../validation';
  */
 function createFunctionFrame(
   funcName: string,
-  params: AST.Parameter[],
+  params: AST.FunctionParameter[],
   args: unknown[]
 ): StackFrame {
   const newFrame = createFrame(funcName, 0);

@@ -65,7 +65,7 @@ function createToolCallingAIProvider(
       const { response, rounds } = await executeWithTools(
         {
           prompt,
-          model: { name: 'mock', apiKey: 'mock' },
+          model: { name: 'mock', apiKey: 'mock', url: null },
           operationType: 'do',
           contextText: '',
           targetType: null,

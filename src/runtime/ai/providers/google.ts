@@ -123,9 +123,8 @@ export async function executeGoogle(request: AIRequest): Promise<AIResponse> {
 
     // Add structured output schema if target type specified
     // Skip for text - just return raw text without structured output
-    // Skip for json/json[] - Google requires non-empty properties for objects
-    const isJsonType = targetType === 'json' || targetType === 'json[]';
-    if (targetType && targetType !== 'text' && !isJsonType) {
+    // Skip for json - Google requires non-empty properties for objects
+    if (targetType && targetType !== 'text' && targetType !== 'json') {
       const schema = typeToSchema(targetType);
       if (schema) {
         generationConfig.responseMimeType = 'application/json';
@@ -151,9 +150,10 @@ export async function executeGoogle(request: AIRequest): Promise<AIResponse> {
     }
 
     // Make API request
+    // Cast contents to unknown to avoid strict SDK type checking (we build valid content)
     const response = await client.models.generateContent({
       model: model.name,
-      contents,
+      contents: contents as unknown as Parameters<typeof client.models.generateContent>[0]['contents'],
       config,
     });
 

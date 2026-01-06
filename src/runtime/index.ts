@@ -4,6 +4,7 @@ export type {
   StackFrame,
   Variable,
   ContextVariable,
+  ContextEntry,
   AIOperation,
   AIInteraction,
   ExecutionEntry,

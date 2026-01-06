@@ -1,34 +1,13 @@
 import { mkdir, writeFile, readdir, rm } from 'fs/promises';
 import { join } from 'path';
 import { tmpdir } from 'os';
-import type { ToolContext } from './types';
-
-// Note: RegisteredTool type is imported but not defined in types.ts
-// This works at runtime with Bun - will be fixed in a future cleanup
+import type { ToolContext, RegisteredTool } from './types';
 
 /**
  * System tools: bash, runCode
  *
  * These tools provide shell command execution and sandboxed code execution.
  */
-
-// Type definition inline until types.ts is updated
-interface RegisteredTool {
-  name: string;
-  kind: 'builtin' | 'user';
-  schema: {
-    name: string;
-    description?: string;
-    parameters: Array<{
-      name: string;
-      type: { type: string; properties?: Record<string, unknown>; additionalProperties?: boolean };
-      description?: string;
-      required: boolean;
-    }>;
-    returns?: { type: string; properties?: Record<string, unknown> };
-  };
-  executor: (args: Record<string, unknown>, context?: ToolContext) => Promise<unknown>;
-}
 
 // Counter for unique bash script filenames
 let bashScriptCounter = 0;

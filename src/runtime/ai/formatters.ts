@@ -102,8 +102,8 @@ export function buildPromptMessage(
     return prompt;
   }
 
-  // json/json[] types always need instruction - structured output can't handle unknown schemas
-  const isJsonType = targetType === 'json' || targetType === 'json[]';
+  // json type always needs instruction - structured output can't handle unknown schemas
+  const isJsonType = targetType === 'json';
 
   // Skip type instruction if provider uses structured output (except for json types)
   if (supportsStructuredOutput && !isJsonType) {
@@ -208,17 +208,19 @@ export function extractUsage(
 ): { inputTokens: number; outputTokens: number } | undefined {
   // Anthropic format: { usage: { input_tokens, output_tokens } }
   if (hasProperty(response, 'usage') && hasProperty(response.usage, 'input_tokens')) {
+    const usage = response.usage as Record<string, unknown>;
     return {
-      inputTokens: Number(response.usage.input_tokens),
-      outputTokens: Number(response.usage.output_tokens ?? 0),
+      inputTokens: Number(usage.input_tokens),
+      outputTokens: Number(usage.output_tokens ?? 0),
     };
   }
 
   // OpenAI format: { usage: { prompt_tokens, completion_tokens } }
   if (hasProperty(response, 'usage') && hasProperty(response.usage, 'prompt_tokens')) {
+    const usage = response.usage as Record<string, unknown>;
     return {
-      inputTokens: Number(response.usage.prompt_tokens),
-      outputTokens: Number(response.usage.completion_tokens ?? 0),
+      inputTokens: Number(usage.prompt_tokens),
+      outputTokens: Number(usage.completion_tokens ?? 0),
     };
   }
 

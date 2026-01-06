@@ -7,7 +7,7 @@ import type { ToolSchema } from '../tools/types';
 export type { AIProviderType };
 
 /** Target types for AI responses */
-export type TargetType = 'text' | 'json' | 'boolean' | 'number' | null;
+export type TargetType = 'text' | 'json' | 'boolean' | 'number' | 'text[]' | 'json[]' | 'boolean[]' | 'number[]' | null;
 
 /** Thinking level for extended reasoning */
 export type ThinkingLevel = 'none' | 'low' | 'medium' | 'high' | 'max';

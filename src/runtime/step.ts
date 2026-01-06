@@ -46,7 +46,7 @@ function applyContextMode(
   contextMode: ContextMode,
   entryIndex: number,
   scopeType: 'for' | 'while' | 'function',
-  label: string
+  label?: string
 ): RuntimeState {
   let newOrderedEntries: FrameEntry[];
 

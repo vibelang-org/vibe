@@ -1,6 +1,7 @@
 import * as AST from '../ast';
 import type { SourceLocation } from '../errors';
 import type { PendingToolCall } from './tools/types';
+export type { PendingToolCall } from './tools/types';
 import type { VibeModelValue } from './ai/client';
 
 // Runtime status
@@ -216,6 +217,8 @@ export interface PendingAI {
   prompt: string;
   model: string;
   context: unknown[];
+  // Scope parameters for vibe code generation
+  vibeScopeParams?: Array<{ name: string; type: string; value: unknown }>;
 }
 
 // Pending TypeScript evaluation (inline ts block)
@@ -334,8 +337,8 @@ export type Instruction =
 
   // While loop
   | { op: 'while_init'; stmt: AST.WhileStatement; savedKeys: string[]; location: SourceLocation }
-  | { op: 'while_iterate'; stmt: AST.WhileStatement; savedKeys: string[]; contextMode?: AST.ContextMode; label: string; entryIndex: number; location: SourceLocation }
-  | { op: 'while_check'; stmt: AST.WhileStatement; savedKeys: string[]; contextMode?: AST.ContextMode; label: string; entryIndex: number; location: SourceLocation }
+  | { op: 'while_iterate'; stmt: AST.WhileStatement; savedKeys: string[]; contextMode?: AST.ContextMode; label?: string; entryIndex: number; location: SourceLocation }
+  | { op: 'while_check'; stmt: AST.WhileStatement; savedKeys: string[]; contextMode?: AST.ContextMode; label?: string; entryIndex: number; location: SourceLocation }
 
   // Value building (for objects, arrays, function args)
   | { op: 'push_value'; location: SourceLocation }

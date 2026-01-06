@@ -156,8 +156,8 @@ describe('Runtime - Runtime class with imports', () => {
     const runtime = new Runtime(
       ast,
       {
-        execute: async (prompt: string) => 'mock',
-        generateCode: async (prompt: string) => 'mock',
+        execute: async (prompt: string) => ({ value: 'mock' }),
+        generateCode: async (prompt: string) => ({ value: 'mock' }),
         askUser: async (prompt: string) => 'mock',
       },
       { basePath: scriptPath }
