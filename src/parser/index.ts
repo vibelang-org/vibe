@@ -455,6 +455,7 @@ class VibeParser extends CstParser {
   });
 
   // Postfix: function calls, indexing, slicing, member access
+  // Optional context mode at end applies to the outermost/final call
   private postfixExpression = this.RULE('postfixExpression', () => {
     this.SUBRULE(this.primaryExpression);
     this.MANY(() => {
@@ -480,6 +481,10 @@ class VibeParser extends CstParser {
         // Member access: .identifier
         { ALT: () => { this.CONSUME(T.Dot); this.CONSUME(T.Identifier); } },
       ]);
+    });
+    // Optional context mode at end - applies to the final expression if it's a call
+    this.OPTION2(() => {
+      this.SUBRULE(this.contextMode);
     });
   });
 

@@ -290,6 +290,7 @@ export interface CallExpression extends BaseNode {
   type: 'CallExpression';
   callee: Expression;
   arguments: Expression[];
+  contextMode?: ContextMode;  // Override function's default context mode at call site
 }
 
 export interface ContextSpecifier extends BaseNode {

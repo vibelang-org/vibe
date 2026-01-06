@@ -8,6 +8,22 @@ import { getImportedVibeFunction } from '../modules';
 import { validateAndCoerce } from '../validation';
 
 /**
+ * Get the effective context mode for a function call.
+ * Priority: call-site override > function declaration > default (verbose)
+ */
+function getEffectiveContextMode(
+  func: AST.FunctionDeclaration,
+  callSiteMode?: AST.ContextMode
+): AST.ContextMode {
+  // Call-site mode overrides function declaration
+  if (callSiteMode !== undefined) {
+    return callSiteMode;
+  }
+  // Use function's declared mode, or default to verbose
+  return func.contextMode ?? 'verbose';
+}
+
+/**
  * Create a new frame with validated parameters for a Vibe function call.
  */
 function createFunctionFrame(
@@ -52,7 +68,8 @@ function executeVibeFunction(
   state: RuntimeState,
   func: AST.FunctionDeclaration,
   args: unknown[],
-  newValueStack: unknown[]
+  newValueStack: unknown[],
+  contextMode: AST.ContextMode
 ): RuntimeState {
   const newFrame = createFunctionFrame(func.name, func.params, args);
 
@@ -68,7 +85,7 @@ function executeVibeFunction(
     callStack: [...state.callStack, newFrame],
     instructionStack: [
       ...bodyInstructions,
-      { op: 'pop_frame', location: func.body.location },
+      { op: 'pop_frame', contextMode, location: func.body.location },
       ...state.instructionStack,
     ],
     lastResult: null,
@@ -77,11 +94,13 @@ function executeVibeFunction(
 
 /**
  * Execute function call - handles local Vibe, imported Vibe, and imported TS functions.
+ * @param callSiteMode - Context mode override from call site (e.g., `myFunc() forget`)
  */
 export function execCallFunction(
   state: RuntimeState,
   _funcName: string,
-  argCount: number
+  argCount: number,
+  callSiteMode?: AST.ContextMode
 ): RuntimeState {
   const args = state.valueStack.slice(-argCount);
   const callee = state.valueStack[state.valueStack.length - argCount - 1];
@@ -96,10 +115,11 @@ export function execCallFunction(
       throw new Error(`ReferenceError: '${funcName}' is not defined`);
     }
 
-    return executeVibeFunction(state, func, args, newValueStack);
+    const effectiveMode = getEffectiveContextMode(func, callSiteMode);
+    return executeVibeFunction(state, func, args, newValueStack, effectiveMode);
   }
 
-  // Handle imported TS function
+  // Handle imported TS function (context mode not applicable - no frame context)
   if (typeof callee === 'object' && callee !== null && '__vibeImportedTsFunction' in callee) {
     const funcName = (callee as { __vibeImportedTsFunction: boolean; name: string }).name;
 
@@ -128,7 +148,8 @@ export function execCallFunction(
       throw new Error(`ReferenceError: '${funcName}' is not defined`);
     }
 
-    return executeVibeFunction(state, func, args, newValueStack);
+    const effectiveMode = getEffectiveContextMode(func, callSiteMode);
+    return executeVibeFunction(state, func, args, newValueStack, effectiveMode);
   }
 
   // Handle tool call - callee is the VibeToolValue itself
