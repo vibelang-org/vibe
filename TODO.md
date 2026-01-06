@@ -17,7 +17,7 @@
   - [ ] Consider `aicompress` vs `compress` naming
 
 ### Cleanup
-- [ ] Remove all `do` keyword references from project (replaced by `vibe`)
+- [x] Remove all `do` keyword references from docs (replaced by `vibe`)
 - [ ] Remove `cache` parameter from `vibe` keyword (no longer needed)
 - [ ] Fix all TypeScript errors (`bun tsc --noEmit`)
 
@@ -104,7 +104,7 @@
 - [x] Context improvements for AI conversation history
   - [x] Track value source on variables (`ai`, `user`, or `undefined`)
   - [x] Show AI responses with `<--` prefix vs `-` for regular variables
-  - [x] Format: `--> do: "prompt"` followed by `<-- varName: response`
+  - [x] Format: `--> vibe: "prompt"` followed by `<-- varName: response`
 
 - [x] Source location tracking
   - [x] Add required `location: SourceLocation` to all Instruction types

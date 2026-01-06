@@ -226,16 +226,16 @@ model myModel = {
 
 ## AI Expressions
 
-### Do Expression
+### Vibe Expression
 
 Send a prompt to an AI model and get a response:
 
 ```vibe
-let response = do "What is 2 + 2?" myModel default
-let answer: number = do "Return just the number 42" myModel default
+let response = vibe "What is 2 + 2?" myModel default
+let answer: number = vibe "Return just the number 42" myModel default
 ```
 
-Syntax: `do <prompt> <model> <context>`
+Syntax: `vibe <prompt> <model> <context>`
 
 Context options:
 - `default` - Full execution history
@@ -248,17 +248,6 @@ Prompt for user input:
 ```vibe
 let name = ask "What is your name?" myModel default
 ```
-
-### Vibe Expression
-
-Generate and execute AI-written Vibe code:
-
-```vibe
-let result = vibe "calculate the sum of x and y" myModel
-let cached = vibe "process item" myModel cache  // Cache for loops
-```
-
-The `cache` keyword reuses generated code in loops instead of regenerating each iteration.
 
 ## TypeScript Blocks
 
@@ -316,17 +305,17 @@ Control how AI context is managed in loops and functions. The keyword goes **aft
 ```vibe
 // Default: keep full history (verbose)
 for item in items {
-  do "process {item}" myModel default
+  vibe "process {item}" myModel default
 }
 
 // Forget: clear history each iteration
 for item in items {
-  do "process {item}" myModel default
+  vibe "process {item}" myModel default
 } forget
 
 // Verbose: explicitly keep history (default behavior)
 for item in items {
-  do "process {item}" myModel default
+  vibe "process {item}" myModel default
 } verbose
 ```
 
@@ -432,7 +421,7 @@ model assistant = {
 
 // Define a helper function
 function processItem(item: text): text {
-  return do "Summarize this: {item}" assistant default
+  return vibe "Summarize this: {item}" assistant default
 }
 
 // Main logic
@@ -446,7 +435,7 @@ for file in files {
 }
 
 // Final AI analysis
-let report: json = do "Create a JSON report from these summaries: {summaries}" assistant default
+let report: json = vibe "Create a JSON report from these summaries: {summaries}" assistant default
 
 // Output result
 print(jsonStringify(report))
