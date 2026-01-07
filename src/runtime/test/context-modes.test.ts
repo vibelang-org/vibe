@@ -73,16 +73,6 @@ describe('Context Modes - Parsing', () => {
     expect(whileStmt.contextMode).toBe('forget');
   });
 
-  test('function with forget keyword parses correctly', () => {
-    const ast = parse(`
-      function doWork(): text {
-        return "done"
-      } forget
-    `);
-    const funcDecl = ast.body[0] as { type: 'FunctionDeclaration'; contextMode?: string };
-    expect(funcDecl.contextMode).toBe('forget');
-  });
-
   test('while loop with verbose keyword parses correctly', () => {
     const ast = parse(`
       let i = 0
@@ -103,26 +93,6 @@ describe('Context Modes - Parsing', () => {
     `);
     const whileStmt = ast.body[1] as { type: 'WhileStatement'; contextMode?: unknown };
     expect(whileStmt.contextMode).toEqual({ compress: 'summarize iterations' });
-  });
-
-  test('function with verbose keyword parses correctly', () => {
-    const ast = parse(`
-      function doWork(): text {
-        return "done"
-      } verbose
-    `);
-    const funcDecl = ast.body[0] as { type: 'FunctionDeclaration'; contextMode?: string };
-    expect(funcDecl.contextMode).toBe('verbose');
-  });
-
-  test('function with compress keyword parses correctly', () => {
-    const ast = parse(`
-      function doWork(): text {
-        return "done"
-      } compress
-    `);
-    const funcDecl = ast.body[0] as { type: 'FunctionDeclaration'; contextMode?: unknown };
-    expect(funcDecl.contextMode).toEqual({ compress: null });
   });
 
   test('loop without context mode defaults to verbose', () => {

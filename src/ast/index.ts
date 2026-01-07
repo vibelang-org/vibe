@@ -19,7 +19,7 @@ export type AIProviderType = 'anthropic' | 'openai' | 'google';
 // Context Modes
 // ============================================================================
 
-/** Context mode for loops and functions - controls what happens on exit */
+/** Context mode for loops - controls what happens to context on loop exit */
 export type ContextMode =
   | 'verbose'                    // Keep full history
   | 'forget'                     // Discard all context from block
@@ -113,7 +113,7 @@ export interface FunctionDeclaration extends BaseNode {
   params: FunctionParameter[];
   returnType: string | null;  // Optional return type
   body: BlockStatement;
-  contextMode?: ContextMode;  // What happens to context on function exit
+  // Note: Functions always "forget" context on exit (like traditional callstack)
 }
 
 // Tool parameter with optional description for AI schema
@@ -290,7 +290,6 @@ export interface CallExpression extends BaseNode {
   type: 'CallExpression';
   callee: Expression;
   arguments: Expression[];
-  contextMode?: ContextMode;  // Override function's default context mode at call site
 }
 
 export interface ContextSpecifier extends BaseNode {

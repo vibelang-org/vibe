@@ -158,13 +158,12 @@ class VibeAstVisitor extends BaseVibeVisitor {
     return { type: 'ObjectProperty', key: ctx.Identifier[0].image, value: this.visit(ctx.expression), location: tokenLocation(ctx.Identifier[0]) };
   }
 
-  functionDeclaration(ctx: { Function: IToken[]; Identifier: IToken[]; parameterList?: CstNode[]; typeAnnotation?: CstNode[]; blockStatement: CstNode[]; contextMode?: CstNode[] }): AST.FunctionDeclaration {
+  functionDeclaration(ctx: { Function: IToken[]; Identifier: IToken[]; parameterList?: CstNode[]; typeAnnotation?: CstNode[]; blockStatement: CstNode[] }): AST.FunctionDeclaration {
     return {
       type: 'FunctionDeclaration', name: ctx.Identifier[0].image,
       params: ctx.parameterList ? this.visit(ctx.parameterList) : [],
       returnType: ctx.typeAnnotation ? this.visit(ctx.typeAnnotation) : null,
       body: this.visit(ctx.blockStatement), location: tokenLocation(ctx.Function[0]),
-      contextMode: ctx.contextMode ? this.visit(ctx.contextMode) : 'verbose',  // Default to verbose
     };
   }
 
@@ -437,12 +436,10 @@ class VibeAstVisitor extends BaseVibeVisitor {
   }
 
   // Postfix: function calls, indexing, slicing, member access
-  // Context mode at end applies to the outermost call expression
   postfixExpression(ctx: {
     primaryExpression: CstNode[];
     LParen?: IToken[];
     argumentList?: CstNode[];
-    contextMode?: CstNode[];
     LBracket?: IToken[];
     indexOrSlice?: CstNode[];
     Dot?: IToken[];
@@ -454,25 +451,17 @@ class VibeAstVisitor extends BaseVibeVisitor {
     const dotTokens = ctx.Dot ?? [];
     const identifierTokens = ctx.Identifier ?? [];
 
-    // Context mode at end applies to the outermost/final expression
-    const contextMode = ctx.contextMode?.[0] ? this.visit(ctx.contextMode[0]) as AST.ContextMode : undefined;
-
     const allOps = [
       ...callTokens.map((t, i) => ({ type: 'call' as const, index: i, offset: t.startOffset })),
       ...bracketTokens.map((t, i) => ({ type: 'bracket' as const, index: i, offset: t.startOffset })),
       ...dotTokens.map((t, i) => ({ type: 'member' as const, index: i, offset: t.startOffset })),
     ].sort((a, b) => a.offset - b.offset);
 
-    for (let i = 0; i < allOps.length; i++) {
-      const op = allOps[i];
-      const isLast = i === allOps.length - 1;
-
+    for (const op of allOps) {
       if (op.type === 'call') {
-        // Only apply context mode to the last (outermost) call
         expr = makeCallExpression(
           expr,
-          ctx.argumentList?.[op.index] ? this.visit(ctx.argumentList[op.index]) : [],
-          isLast ? contextMode : undefined
+          ctx.argumentList?.[op.index] ? this.visit(ctx.argumentList[op.index]) : []
         );
       } else if (op.type === 'bracket') {
         const result = this.visit(ctx.indexOrSlice![op.index]) as

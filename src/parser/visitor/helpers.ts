@@ -218,19 +218,14 @@ export function makeTsBlock(token: IToken): AST.TsBlock {
 
 export function makeCallExpression(
   callee: AST.Expression,
-  args: AST.Expression[],
-  contextMode?: AST.ContextMode
+  args: AST.Expression[]
 ): AST.CallExpression {
-  const expr: AST.CallExpression = {
+  return {
     type: 'CallExpression',
     callee,
     arguments: args,
     location: callee.location,
   };
-  if (contextMode !== undefined) {
-    expr.contextMode = contextMode;
-  }
-  return expr;
 }
 
 export function makeIndexExpression(

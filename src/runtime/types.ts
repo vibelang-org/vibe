@@ -309,10 +309,10 @@ export type Instruction =
   | { op: 'declare_var'; name: string; isConst: boolean; type: string | null; location: SourceLocation }
   | { op: 'assign_var'; name: string; location: SourceLocation }
 
-  // Function calls
-  | { op: 'call_function'; funcName: string; argCount: number; contextMode?: AST.ContextMode; location: SourceLocation }
+  // Function calls (functions always forget context - no context mode support)
+  | { op: 'call_function'; funcName: string; argCount: number; location: SourceLocation }
   | { op: 'push_frame'; name: string; location: SourceLocation }
-  | { op: 'pop_frame'; contextMode?: AST.ContextMode; location: SourceLocation }
+  | { op: 'pop_frame'; location: SourceLocation }
   | { op: 'return_value'; location: SourceLocation }
 
   // Block scoping

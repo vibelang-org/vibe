@@ -215,13 +215,13 @@ function executeInstruction(state: RuntimeState, instruction: Instruction): Runt
       return execAssignVar(state, instruction.name, instruction.location);
 
     case 'call_function':
-      return execCallFunction(state, instruction.funcName, instruction.argCount, instruction.contextMode);
+      return execCallFunction(state, instruction.funcName, instruction.argCount);
 
     case 'push_frame':
       return execPushFrame(state, instruction.name);
 
     case 'pop_frame':
-      return execPopFrame(state, instruction.contextMode);
+      return execPopFrame(state);
 
     case 'return_value':
       return execReturnValue(state);
