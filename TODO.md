@@ -23,10 +23,12 @@
   - [x] Flexible syntax: `compress`, `compress(model)`, `compress("prompt")`, `compress("prompt", model)`, `compress(promptVar)`, `compress(promptVar, model)`
   - [x] Semantic validation for compress arguments
   - [x] `lastUsedModel` tracking for default model resolution
-- [ ] Add convention for storing tool call results in variables
-  - [ ] Currently tool results go into context but can't be captured in variables
-  - [ ] Need a way to assign tool results so they can be returned from functions
-  - [ ] Example: `let result = do "fetch user data"` or similar syntax
+- [x] AIResultObject with toolCalls access (PLAN: PLAN-ai-result-object.md) ✅
+  - [x] `const ret = vibe "..."` returns object with `.value` and `.toolCalls`
+  - [x] Primitive coercion: `ret` in expressions resolves to value
+  - [x] `.toolCalls` returns array of `{tool, args, result, error, duration}`
+  - [x] Python-style array slicing: `arr[1:3]`, `arr[:-1]`, `arr[::2]`
+  - [x] Logical indexing: `arr[boolArray]` for filtering
 
 ### Cleanup
 - [x] Remove all `do` keyword references from docs (replaced by `vibe`)
@@ -40,6 +42,14 @@
   - [ ] Interactive prompts for unknown/dangerous operations
   - [ ] Global config (`~/.vibe/settings.json`) and project config
   - [ ] CLI flags: `--yes-all`, `--safe-mode`
+
+### npm Publishing
+- [ ] Publish Vibe CLI to npm as `@vibe-lang/vibe` (PLAN: PLAN-npm-publish.md)
+  - [ ] Create build script for cross-platform binaries (`scripts/build.ts`)
+  - [ ] Create platform packages (`@vibe-lang/vibe-linux-x64`, etc.)
+  - [ ] Create main wrapper package with postinstall script
+  - [ ] Create publish script (`scripts/publish.ts`)
+  - [ ] Update README with installation instructions
 
 ### Real-World Examples
 - [ ] Code review assistant (`examples/code-review.vibe`)
@@ -69,6 +79,12 @@
 - [ ] Package symbol-tree as shareable plugin
 
 ## Completed (Last 10)
+
+- [x] AIResultObject with toolCalls and Python-style array slicing
+  - [x] AI calls return `{value, toolCalls}` object with primitive coercion
+  - [x] `.toolCalls` array with `{tool, args, result, error, duration}` records
+  - [x] Python-style slicing: `arr[1:3]`, `arr[:-1]`, `arr[::2]`
+  - [x] Logical indexing: `arr[boolArray]` for array filtering
 
 - [x] Implement `compress` keyword runtime functionality
   - [x] Flexible syntax: `compress`, `compress(model)`, `compress("prompt")`, `compress("prompt", model)`, `compress(promptVar)`, `compress(promptVar, model)`
