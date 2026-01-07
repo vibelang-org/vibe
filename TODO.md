@@ -12,13 +12,18 @@
 - [ ] Context checkpoints beyond local/global
 - [ ] Context orchestration functions
 - [ ] Variable visibility modifiers
-- [ ] Implement `compress` keyword for context compression
-  - [ ] `compress("prompt")` - compress context with custom prompt
-  - [ ] Consider `aicompress` vs `compress` naming
-- [ ] Call-site context mode override for functions
-  - [ ] Allow `forget` or `verbose` after function call to override declaration
-  - [ ] Example: `let result = myFunc() forget` overrides function's default mode
-  - [ ] Useful when caller wants different context behavior than function author intended
+- [ ] Implement `compress` keyword for context compression (PLAN: PLAN-compress-keyword.md)
+  - [ ] Add `awaiting_compress` status to RuntimeStatus
+  - [ ] Add `pendingCompress` field to RuntimeState
+  - [ ] Add `resumeWithCompressResult` function to state.ts
+  - [ ] Update `applyContextMode` in step.ts to pause for AI
+  - [ ] Add `formatEntriesForSummarization` helper to context.ts
+  - [ ] Handle `awaiting_compress` in runner (run.ts or ai-provider.ts)
+  - [ ] Update tests in context-modes.test.ts
+- [ ] Add convention for storing tool call results in variables
+  - [ ] Currently tool results go into context but can't be captured in variables
+  - [ ] Need a way to assign tool results so they can be returned from functions
+  - [ ] Example: `let result = do "fetch user data"` or similar syntax
 
 ### Cleanup
 - [x] Remove all `do` keyword references from docs (replaced by `vibe`)
@@ -61,6 +66,11 @@
 - [ ] Package symbol-tree as shareable plugin
 
 ## Completed (Last 10)
+
+- [x] Remove context modes from functions (e3014ad)
+  - [x] Functions now always "forget" context on exit like traditional callstack
+  - [x] Loops retain forget/verbose/compress modes
+  - [x] Return values are the interface for passing data out
 
 - [x] Single-round AI command (`do` keyword)
   - [x] `do` keyword for single-round AI call (executes tools once, no loop back)
@@ -115,23 +125,3 @@
   - [x] Track value source on variables (`ai`, `user`, or `undefined`)
   - [x] Show AI responses with `<--` prefix vs `-` for regular variables
   - [x] Format: `--> vibe: "prompt"` followed by `<-- varName: response`
-
-- [x] Source location tracking
-  - [x] Add required `location: SourceLocation` to all Instruction types
-  - [x] Propagate location from AST nodes to Instructions
-  - [x] RuntimeError uses instruction location for accurate error messages
-
-- [x] AI model API calls
-  - [x] Support for OpenAI, Anthropic, Google Gemini (official SDKs)
-  - [x] Error handling and retries (exponential backoff)
-  - [x] Structured outputs (type-aware responses)
-  - [x] Provider auto-detection + thinkingLevel support
-
-- [x] Refactor runtime/step.ts (1284 → 223 lines, 83% reduction)
-  - [x] Extract validation, variables, ai, statements, expressions, functions modules
-
-- [x] Control Flow
-  - [x] Add `number` type with full support
-  - [x] For-in loop with array iteration and range syntax
-  - [x] While loop with strict boolean condition
-
