@@ -13,7 +13,9 @@
     "test": "bun test src/",
     "test:watch": "bun test --watch src/",
     "test:integration": "bun test tests/integration/ --timeout 120000",
-    "test:all": "bun test src/ tests/integration/ --timeout 120000"
+    "test:all": "bun test src/ tests/integration/ --timeout 120000",
+    "prepublish": "bun run scripts/publish.ts",
+    "publish:npm": "bun run scripts/publish.ts && cd dist/npm && npm publish --access public"
   },
   "keywords": ["ai", "agent", "orchestration", "dsl", "language"],
   "author": "",
