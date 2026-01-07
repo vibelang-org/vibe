@@ -3,9 +3,9 @@
 
 import { describe, test, expect } from 'bun:test';
 import { parse } from '../../parser/parse';
-import { createInitialState } from '../state';
+import { createInitialState, resumeWithCompressResult } from '../state';
 import { step, stepN } from '../step';
-import { buildLocalContext } from '../context';
+import { buildLocalContext, formatEntriesForSummarization } from '../context';
 import { formatContextForAI } from '../context';
 import type { RuntimeState } from '../types';
 
@@ -49,7 +49,7 @@ describe('Context Modes - Parsing', () => {
       } compress
     `);
     const forStmt = ast.body[0] as { type: 'ForInStatement'; contextMode?: unknown };
-    expect(forStmt.contextMode).toEqual({ compress: null });
+    expect(forStmt.contextMode).toEqual({ compress: { arg1: null, arg2: null } });
   });
 
   test('for loop with compress and prompt parses correctly', () => {
@@ -59,7 +59,7 @@ describe('Context Modes - Parsing', () => {
       } compress("summarize the results")
     `);
     const forStmt = ast.body[0] as { type: 'ForInStatement'; contextMode?: unknown };
-    expect(forStmt.contextMode).toEqual({ compress: 'summarize the results' });
+    expect(forStmt.contextMode).toEqual({ compress: { arg1: { kind: 'literal', value: 'summarize the results' }, arg2: null } });
   });
 
   test('while loop with forget keyword parses correctly', () => {
@@ -92,7 +92,47 @@ describe('Context Modes - Parsing', () => {
       } compress("summarize iterations")
     `);
     const whileStmt = ast.body[1] as { type: 'WhileStatement'; contextMode?: unknown };
-    expect(whileStmt.contextMode).toEqual({ compress: 'summarize iterations' });
+    expect(whileStmt.contextMode).toEqual({ compress: { arg1: { kind: 'literal', value: 'summarize iterations' }, arg2: null } });
+  });
+
+  test('compress with model identifier parses correctly', () => {
+    const ast = parse(`
+      for i in [1, 2, 3] {
+        let x = i
+      } compress(myModel)
+    `);
+    const forStmt = ast.body[0] as { type: 'ForInStatement'; contextMode?: unknown };
+    expect(forStmt.contextMode).toEqual({ compress: { arg1: { kind: 'identifier', name: 'myModel' }, arg2: null } });
+  });
+
+  test('compress with prompt literal and model identifier parses correctly', () => {
+    const ast = parse(`
+      for i in [1, 2, 3] {
+        let x = i
+      } compress("summarize", myModel)
+    `);
+    const forStmt = ast.body[0] as { type: 'ForInStatement'; contextMode?: unknown };
+    expect(forStmt.contextMode).toEqual({
+      compress: {
+        arg1: { kind: 'literal', value: 'summarize' },
+        arg2: { kind: 'identifier', name: 'myModel' },
+      },
+    });
+  });
+
+  test('compress with two identifiers parses correctly', () => {
+    const ast = parse(`
+      for i in [1, 2, 3] {
+        let x = i
+      } compress(SUMMARY_PROMPT, myModel)
+    `);
+    const forStmt = ast.body[0] as { type: 'ForInStatement'; contextMode?: unknown };
+    expect(forStmt.contextMode).toEqual({
+      compress: {
+        arg1: { kind: 'identifier', name: 'SUMMARY_PROMPT' },
+        arg2: { kind: 'identifier', name: 'myModel' },
+      },
+    });
   });
 
   test('loop without context mode defaults to verbose', () => {
@@ -335,8 +375,9 @@ describe('Context Modes - While Loop Runtime', () => {
     expect(iEntries.length).toBeGreaterThanOrEqual(2);
   });
 
-  test('while loop with compress adds scope markers (summarization deferred)', () => {
+  test('while loop with compress pauses for AI summarization', () => {
     const ast = parse(`
+      model m = { name: "test", apiKey: "key", url: "http://test" }
       let i = 0
       while (i < 2) {
         i = i + 1
@@ -346,17 +387,19 @@ describe('Context Modes - While Loop Runtime', () => {
     let state = createInitialState(ast);
     state = runUntilPause(state);
 
-    const context = buildLocalContext(state);
-
-    // Compress currently behaves like verbose (adds markers, summarization is TODO)
-    const scopeExit = context.find(e => e.kind === 'scope-exit');
-    expect(scopeExit).toBeDefined();
+    // Compress pauses for AI summarization
+    expect(state.status).toBe('awaiting_compress');
+    expect(state.pendingCompress).toBeDefined();
+    expect(state.pendingCompress?.prompt).toBe('summarize');
+    expect(state.pendingCompress?.model).toBe('m');
+    expect(state.pendingCompress?.scopeType).toBe('while');
   });
 });
 
 describe('Context Modes - For Loop All Modes', () => {
-  test('for loop with compress adds scope markers (summarization deferred)', () => {
+  test('for loop with compress pauses for AI summarization', () => {
     const ast = parse(`
+      model m = { name: "test", apiKey: "key", url: "http://test" }
       for i in [1, 2] {
         let x = i
       } compress
@@ -365,11 +408,45 @@ describe('Context Modes - For Loop All Modes', () => {
     let state = createInitialState(ast);
     state = runUntilPause(state);
 
-    const context = buildLocalContext(state);
+    // Compress pauses for AI summarization (uses lastUsedModel from model declaration)
+    expect(state.status).toBe('awaiting_compress');
+    expect(state.pendingCompress).toBeDefined();
+    expect(state.pendingCompress?.prompt).toBeNull(); // No custom prompt
+    expect(state.pendingCompress?.model).toBe('m');
+    expect(state.pendingCompress?.scopeType).toBe('for');
+  });
 
-    // Compress currently behaves like verbose (adds markers, summarization is TODO)
-    const scopeExit = context.find(e => e.kind === 'scope-exit');
-    expect(scopeExit).toBeDefined();
+  test('for loop with compress and explicit model', () => {
+    const ast = parse(`
+      model gpt = { name: "gpt-4", apiKey: "key1", url: "http://test1" }
+      model claude = { name: "claude", apiKey: "key2", url: "http://test2" }
+      for i in [1, 2] {
+        let x = i
+      } compress(claude)
+      let after = "done"
+    `);
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    // Compress uses explicit model
+    expect(state.status).toBe('awaiting_compress');
+    expect(state.pendingCompress?.model).toBe('claude');
+  });
+
+  test('for loop with compress prompt and model', () => {
+    const ast = parse(`
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+      for i in [1, 2] {
+        let x = i
+      } compress("summarize results", m)
+      let after = "done"
+    `);
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    expect(state.status).toBe('awaiting_compress');
+    expect(state.pendingCompress?.prompt).toBe('summarize results');
+    expect(state.pendingCompress?.model).toBe('m');
   });
 });
 
@@ -498,5 +575,76 @@ describe('Context Modes - Formatted Output', () => {
     expect(formatted.text).toContain('- i (number): 2');
     // Inner loop entries should be forgotten
     expect(formatted.text).not.toContain('- j');
+  });
+});
+
+describe('Compress Resume Flow', () => {
+  test('resumeWithCompressResult replaces entries with summary', () => {
+    const ast = parse(`
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+      for i in [1, 2, 3] {
+        let x = i
+      } compress
+      let after = "done"
+    `);
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    // Should be awaiting_compress
+    expect(state.status).toBe('awaiting_compress');
+    expect(state.pendingCompress).toBeDefined();
+
+    // Resume with a summary
+    state = resumeWithCompressResult(state, 'Loop processed items 1, 2, 3');
+
+    // Should be running again
+    expect(state.status).toBe('running');
+    expect(state.pendingCompress).toBeNull();
+
+    // Run to completion
+    state = runUntilPause(state);
+    expect(state.status).toBe('completed');
+
+    // Context should have the summary
+    const context = buildLocalContext(state);
+    const summaryEntry = context.find(e => e.kind === 'summary');
+    expect(summaryEntry).toBeDefined();
+    expect((summaryEntry as { text: string }).text).toBe('Loop processed items 1, 2, 3');
+  });
+
+  test('formatEntriesForSummarization formats entries correctly', () => {
+    const ast = parse(`
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+      for i in [1, 2] {
+        let x = i * 10
+      } compress
+    `);
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    expect(state.status).toBe('awaiting_compress');
+    const entries = state.pendingCompress?.entriesToSummarize ?? [];
+
+    const formatted = formatEntriesForSummarization(entries);
+
+    // Should include loop entries
+    expect(formatted).toContain('for (i) started');
+    expect(formatted).toContain('Variable i');
+    expect(formatted).toContain('Variable x');
+  });
+
+  test('compress with empty loop skips summarization', () => {
+    const ast = parse(`
+      model m = { name: "test", apiKey: "key", url: "http://test" }
+      for i in [] {
+        let x = i
+      } compress
+      let after = "done"
+    `);
+    let state = createInitialState(ast);
+    state = runUntilPause(state);
+
+    // Empty loop should complete without awaiting compress
+    expect(state.status).toBe('completed');
   });
 });

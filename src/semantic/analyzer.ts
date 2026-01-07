@@ -80,6 +80,7 @@ export class SemanticAnalyzer {
         this.declare(node.variable, 'variable', node.location, { typeAnnotation: null });
         this.visitStatement(node.body);
         this.symbols.exitScope();
+        if (node.contextMode) this.validateContextMode(node.contextMode, node.location);
         break;
 
       case 'WhileStatement':
@@ -88,6 +89,7 @@ export class SemanticAnalyzer {
         this.symbols.enterScope();
         this.visitStatement(node.body);
         this.symbols.exitScope();
+        if (node.contextMode) this.validateContextMode(node.contextMode, node.location);
         break;
 
       case 'BlockStatement':
@@ -539,6 +541,61 @@ export class SemanticAnalyzer {
     // Additional JSON validation for string literals
     if (type === 'json' && expr.type === 'StringLiteral') {
       this.validateJsonLiteral(expr.value, location);
+    }
+  }
+
+  /**
+   * Validates compress context mode arguments.
+   * - Single identifier: must be model or prompt type
+   * - Two arguments: first must be prompt/literal, second must be model
+   */
+  private validateContextMode(mode: AST.ContextMode, location: SourceLocation): void {
+    if (mode === 'forget' || mode === 'verbose') return;
+
+    // It's a compress mode
+    const { arg1, arg2 } = mode.compress;
+
+    if (arg1 && arg1.kind === 'identifier') {
+      const sym = this.symbols.lookup(arg1.name);
+      if (!sym) {
+        this.error(`compress argument '${arg1.name}' is not declared`, location);
+      } else if (arg2) {
+        // Two args: first must be prompt type (or constant with prompt-compatible type)
+        const isPromptType = sym.kind === 'constant' && sym.typeAnnotation === 'prompt';
+        const isTextType = sym.typeAnnotation === 'text' || sym.typeAnnotation === 'prompt';
+        if (!isPromptType && !isTextType) {
+          this.error(
+            `compress first argument '${arg1.name}' must be prompt type when two arguments provided, got ${sym.typeAnnotation ?? sym.kind}`,
+            location
+          );
+        }
+      } else {
+        // Single identifier: must be model or prompt type
+        const isModelType = sym.kind === 'model' || (sym.kind === 'constant' && sym.typeAnnotation === 'model');
+        const isPromptType = sym.kind === 'constant' && sym.typeAnnotation === 'prompt';
+        const isTextType = sym.typeAnnotation === 'text' || sym.typeAnnotation === 'prompt';
+        if (!isModelType && !isPromptType && !isTextType) {
+          this.error(
+            `compress argument '${arg1.name}' must be prompt or model type, got ${sym.typeAnnotation ?? sym.kind}`,
+            location
+          );
+        }
+      }
+    }
+
+    if (arg2 && arg2.kind === 'identifier') {
+      const sym = this.symbols.lookup(arg2.name);
+      if (!sym) {
+        this.error(`compress model '${arg2.name}' is not declared`, location);
+      } else {
+        const isModelType = sym.kind === 'model' || (sym.kind === 'constant' && sym.typeAnnotation === 'model');
+        if (!isModelType) {
+          this.error(
+            `compress second argument '${arg2.name}' must be model type, got ${sym.typeAnnotation ?? sym.kind}`,
+            location
+          );
+        }
+      }
     }
   }
 

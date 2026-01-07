@@ -293,7 +293,9 @@ class VibeParser extends CstParser {
     });
   });
 
-  // Context mode: forget | verbose | compress | compress("prompt")
+  // Context mode: forget | verbose | compress | compress(...args)
+  // compress supports: compress, compress(model), compress("prompt"),
+  //                    compress(promptVar), compress("prompt", model), compress(promptVar, model)
   private contextMode = this.RULE('contextMode', () => {
     this.OR([
       { ALT: () => this.CONSUME(T.Forget) },
@@ -303,7 +305,16 @@ class VibeParser extends CstParser {
           this.CONSUME(T.Compress);
           this.OPTION(() => {
             this.CONSUME(T.LParen);
-            this.CONSUME(T.StringLiteral);
+            // First argument: string literal or identifier
+            this.OR1([
+              { ALT: () => this.CONSUME(T.StringLiteral) },
+              { ALT: () => this.CONSUME1(T.Identifier) },
+            ]);
+            // Optional second argument: identifier (model)
+            this.OPTION1(() => {
+              this.CONSUME(T.Comma);
+              this.CONSUME2(T.Identifier);
+            });
             this.CONSUME(T.RParen);
           });
         },

@@ -315,7 +315,7 @@ export function execCallExpression(state: RuntimeState, expr: AST.CallExpression
       { op: 'exec_expression', expr: expr.callee, location: expr.callee.location },
       { op: 'push_value', location: expr.callee.location },  // Save callee to value stack
       ...argInstructions,
-      { op: 'call_function', funcName: '', argCount: expr.arguments.length, contextMode: expr.contextMode, location: expr.location },
+      { op: 'call_function', funcName: '', argCount: expr.arguments.length, location: expr.location },
       ...state.instructionStack,
     ],
   };

@@ -71,6 +71,8 @@ export function execAIVibe(state: RuntimeState, model: string, context: AST.Cont
   return {
     ...state,
     status: 'awaiting_ai',
+    // Update lastUsedModel for compress to use
+    lastUsedModel: model,
     pendingAI: {
       type: operationType,  // 'do' = single round, 'vibe' = multi-turn
       prompt,

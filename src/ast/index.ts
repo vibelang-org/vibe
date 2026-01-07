@@ -19,11 +19,16 @@ export type AIProviderType = 'anthropic' | 'openai' | 'google';
 // Context Modes
 // ============================================================================
 
+/** Compress argument - either a string literal or identifier reference */
+export type CompressArg =
+  | { kind: 'literal'; value: string }
+  | { kind: 'identifier'; name: string };
+
 /** Context mode for loops - controls what happens to context on loop exit */
 export type ContextMode =
   | 'verbose'                    // Keep full history
   | 'forget'                     // Discard all context from block
-  | { compress: string | null }; // AI summarizes (with optional prompt)
+  | { compress: { arg1: CompressArg | null; arg2: CompressArg | null } }; // AI summarizes
 
 // ============================================================================
 // Program

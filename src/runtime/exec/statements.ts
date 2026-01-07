@@ -108,6 +108,8 @@ export function finalizeModelDeclaration(
 
   return {
     ...state,
+    // Set lastUsedModel if not already set (first model declaration)
+    lastUsedModel: state.lastUsedModel ?? stmt.name,
     callStack: [
       ...state.callStack.slice(0, -1),
       { ...frame, locals: newLocals },

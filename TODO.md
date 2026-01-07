@@ -12,14 +12,17 @@
 - [ ] Context checkpoints beyond local/global
 - [ ] Context orchestration functions
 - [ ] Variable visibility modifiers
-- [ ] Implement `compress` keyword for context compression (PLAN: PLAN-compress-keyword.md)
-  - [ ] Add `awaiting_compress` status to RuntimeStatus
-  - [ ] Add `pendingCompress` field to RuntimeState
-  - [ ] Add `resumeWithCompressResult` function to state.ts
-  - [ ] Update `applyContextMode` in step.ts to pause for AI
-  - [ ] Add `formatEntriesForSummarization` helper to context.ts
-  - [ ] Handle `awaiting_compress` in runner (run.ts or ai-provider.ts)
-  - [ ] Update tests in context-modes.test.ts
+- [x] Implement `compress` keyword for context compression (PLAN: PLAN-compress-keyword.md) ✅
+  - [x] Add `awaiting_compress` status to RuntimeStatus
+  - [x] Add `pendingCompress` field to RuntimeState
+  - [x] Add `resumeWithCompressResult` function to state.ts
+  - [x] Update `applyContextMode` in step.ts to pause for AI
+  - [x] Add `formatEntriesForSummarization` helper to context.ts
+  - [x] Handle `awaiting_compress` in runner
+  - [x] Update tests in context-modes.test.ts
+  - [x] Flexible syntax: `compress`, `compress(model)`, `compress("prompt")`, `compress("prompt", model)`, `compress(promptVar)`, `compress(promptVar, model)`
+  - [x] Semantic validation for compress arguments
+  - [x] `lastUsedModel` tracking for default model resolution
 - [ ] Add convention for storing tool call results in variables
   - [ ] Currently tool results go into context but can't be captured in variables
   - [ ] Need a way to assign tool results so they can be returned from functions
@@ -66,6 +69,18 @@
 - [ ] Package symbol-tree as shareable plugin
 
 ## Completed (Last 10)
+
+- [x] Implement `compress` keyword runtime functionality
+  - [x] Flexible syntax: `compress`, `compress(model)`, `compress("prompt")`, `compress("prompt", model)`, `compress(promptVar)`, `compress(promptVar, model)`
+  - [x] AST updates for CompressArg type with model/prompt support
+  - [x] Parser handles all compress syntax patterns
+  - [x] Semantic validation: type checking for model/prompt arguments
+  - [x] Runtime: `awaiting_compress` status, `pendingCompress` state, `resumeWithCompressResult`
+  - [x] `lastUsedModel` tracking - set on model declaration, updated on AI calls
+  - [x] `formatEntriesForSummarization` helper for AI summarization
+  - [x] Integration with Runtime class for automatic compress handling
+  - [x] Integration tests: for/while loops, custom prompts, explicit models (4 tests)
+  - [x] 1373 unit tests passing
 
 - [x] Remove context modes from functions (e3014ad)
   - [x] Functions now always "forget" context on exit like traditional callstack

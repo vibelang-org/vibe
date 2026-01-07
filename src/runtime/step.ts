@@ -38,45 +38,130 @@ import { execToolDeclaration } from './exec/tools';
  * Apply context mode on scope exit.
  * - verbose: keep all entries (add scope-exit marker)
  * - forget: remove all entries added during scope (back to entryIndex)
- * - compress: TODO - call AI to summarize and replace entries with summary
+ * - compress: pause for AI to summarize and replace entries with summary
+ * Note: Only loops support context modes. Functions always "forget".
  */
 function applyContextMode(
   state: RuntimeState,
   frame: StackFrame,
   contextMode: ContextMode,
   entryIndex: number,
-  scopeType: 'for' | 'while' | 'function',
+  scopeType: 'for' | 'while',
   label?: string
 ): RuntimeState {
-  let newOrderedEntries: FrameEntry[];
-
   if (contextMode === 'forget') {
     // Forget: remove all entries from scope (back to before scope-enter)
-    newOrderedEntries = frame.orderedEntries.slice(0, entryIndex);
-  } else if (contextMode === 'verbose' || typeof contextMode === 'object') {
-    // Verbose or compress: add scope-exit marker
-    // For compress, we'll handle the actual summarization later (requires AI call)
-    newOrderedEntries = [
+    const newOrderedEntries = frame.orderedEntries.slice(0, entryIndex);
+    return {
+      ...state,
+      callStack: [
+        ...state.callStack.slice(0, -1),
+        { ...frame, orderedEntries: newOrderedEntries },
+      ],
+    };
+  }
+
+  if (contextMode === 'verbose') {
+    // Verbose: add scope-exit marker, keep all entries
+    const newOrderedEntries = [
       ...frame.orderedEntries,
       { kind: 'scope-exit' as const, scopeType, label },
     ];
-
-    // TODO: For compress mode, queue an AI call to summarize and replace entries
-    if (typeof contextMode === 'object' && 'compress' in contextMode) {
-      // For now, just mark as scope-exit
-      // Compress summarization will be a follow-up feature
-    }
-  } else {
-    newOrderedEntries = frame.orderedEntries;
+    return {
+      ...state,
+      callStack: [
+        ...state.callStack.slice(0, -1),
+        { ...frame, orderedEntries: newOrderedEntries },
+      ],
+    };
   }
 
-  return {
-    ...state,
-    callStack: [
-      ...state.callStack.slice(0, -1),
-      { ...frame, orderedEntries: newOrderedEntries },
-    ],
-  };
+  // Compress mode: pause for AI summarization
+  if (typeof contextMode === 'object' && 'compress' in contextMode) {
+    const { arg1, arg2 } = contextMode.compress;
+
+    // Resolve prompt and model from args
+    let prompt: string | null = null;
+    let modelName: string | null = null;
+
+    if (arg1) {
+      if (arg1.kind === 'literal') {
+        // String literal is always a prompt
+        prompt = arg1.value;
+      } else {
+        // Identifier - check if it's a model or prompt variable
+        const varValue = lookupVariable(state, arg1.name);
+        if (varValue && typeof varValue === 'object' && '__vibeModel' in varValue) {
+          // It's a model
+          modelName = arg1.name;
+        } else {
+          // It's a prompt (text value)
+          prompt = String(varValue ?? '');
+        }
+      }
+    }
+
+    if (arg2 && arg2.kind === 'identifier') {
+      // Second arg is always model
+      modelName = arg2.name;
+    }
+
+    // Fall back to lastUsedModel if no explicit model
+    const resolvedModel = modelName ?? state.lastUsedModel;
+    if (!resolvedModel) {
+      throw new RuntimeError('compress requires a model but none declared', { line: 0, column: 0 }, '');
+    }
+
+    // Extract entries to summarize (from scope-enter to now)
+    const entriesToSummarize = frame.orderedEntries.slice(entryIndex);
+
+    // If empty scope, skip compression
+    if (entriesToSummarize.length <= 1) {
+      // Only scope-enter, nothing to summarize
+      const newOrderedEntries = [
+        ...frame.orderedEntries,
+        { kind: 'scope-exit' as const, scopeType, label },
+      ];
+      return {
+        ...state,
+        callStack: [
+          ...state.callStack.slice(0, -1),
+          { ...frame, orderedEntries: newOrderedEntries },
+        ],
+      };
+    }
+
+    // Pause for AI summarization
+    return {
+      ...state,
+      status: 'awaiting_compress',
+      pendingCompress: {
+        prompt,
+        model: resolvedModel,
+        entriesToSummarize,
+        entryIndex,
+        scopeType,
+        label,
+      },
+    };
+  }
+
+  // Default: just return unchanged
+  return state;
+}
+
+/**
+ * Look up a variable's value in the current scope chain.
+ */
+function lookupVariable(state: RuntimeState, name: string): unknown {
+  // Search from current frame up through scope chain
+  for (let i = state.callStack.length - 1; i >= 0; i--) {
+    const frame = state.callStack[i];
+    if (name in frame.locals) {
+      return frame.locals[name].value;
+    }
+  }
+  return undefined;
 }
 
 // Get the next instruction that will be executed (or null if done/paused)

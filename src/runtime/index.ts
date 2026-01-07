@@ -9,6 +9,7 @@ export type {
   AIInteraction,
   ExecutionEntry,
   PendingAI,
+  PendingCompress,
   PendingTS,
   PendingToolCall,
   TsModule,
@@ -36,6 +37,7 @@ export {
   resumeWithTsResult,
   resumeWithImportedTsResult,
   resumeWithToolResult,
+  resumeWithCompressResult,
   pauseExecution,
   resumeExecution,
   currentFrame,
@@ -61,6 +63,7 @@ export {
   buildLocalContext,
   buildGlobalContext,
   formatContextForAI,
+  formatEntriesForSummarization,
   type FormattedContext,
 } from './context';
 
@@ -85,11 +88,11 @@ export { formatAIInteractions, dumpAIInteractions, saveAIInteractions } from './
 import * as AST from '../ast';
 import { dirname } from 'path';
 import type { RuntimeState, AIInteraction } from './types';
-import { createInitialState, resumeWithAIResponse, resumeWithUserInput, resumeWithTsResult, resumeWithImportedTsResult, resumeWithToolResult } from './state';
+import { createInitialState, resumeWithAIResponse, resumeWithUserInput, resumeWithTsResult, resumeWithImportedTsResult, resumeWithToolResult, resumeWithCompressResult } from './state';
 import { step, runUntilPause } from './step';
 import { evalTsBlock } from './ts-eval';
 import { loadImports, getImportedTsFunction } from './modules';
-import { buildGlobalContext, formatContextForAI } from './context';
+import { buildLocalContext, buildGlobalContext, formatContextForAI, formatEntriesForSummarization } from './context';
 import { saveAIInteractions } from './ai-logger';
 
 // Token usage from AI providers
@@ -168,12 +171,13 @@ export class Runtime {
     // Run until pause or complete
     this.state = runUntilPause(this.state);
 
-    // Handle AI calls, TS evaluation, and tool calls in a loop
+    // Handle AI calls, TS evaluation, tool calls, and compress in a loop
     while (
       this.state.status === 'awaiting_ai' ||
       this.state.status === 'awaiting_user' ||
       this.state.status === 'awaiting_ts' ||
-      this.state.status === 'awaiting_tool'
+      this.state.status === 'awaiting_tool' ||
+      this.state.status === 'awaiting_compress'
     ) {
       if (this.state.status === 'awaiting_ts') {
         if (this.state.pendingTS) {
@@ -259,6 +263,27 @@ export class Runtime {
         const context = { rootDir: this.state.rootDir };
         const result = await executor(args, context);
         this.state = resumeWithToolResult(this.state, result);
+      } else if (this.state.status === 'awaiting_compress') {
+        // Handle compress AI summarization
+        if (!this.state.pendingCompress) {
+          throw new Error('State awaiting compress but no pending compress request');
+        }
+
+        const { prompt, scopeType } = this.state.pendingCompress;
+
+        // Build local context at end of loop (before we discard entries)
+        const localContext = buildLocalContext(this.state);
+        const contextFormatted = formatContextForAI(localContext, { includeInstructions: false });
+
+        // Build summarization prompt
+        const defaultPrompt = `Provide a concise summary of the most recent ${scopeType} loop execution. Focus on key results, state changes, and outcomes.`;
+        const summaryPrompt = `${prompt ?? defaultPrompt}\n\n${contextFormatted.text}`;
+
+        // Execute AI call for summarization (uses pendingCompress.model)
+        const result = await this.aiProvider.execute(summaryPrompt);
+        const summary = typeof result.value === 'string' ? result.value : String(result.value);
+
+        this.state = resumeWithCompressResult(this.state, summary);
       } else {
         // Handle user input
         if (!this.state.pendingAI) {
@@ -322,6 +347,7 @@ export class Runtime {
 export enum RuntimeStatus {
   RUNNING = 'running',
   AWAITING_AI_RESPONSE = 'awaiting_ai',
+  AWAITING_COMPRESS = 'awaiting_compress',
   AWAITING_USER_INPUT = 'awaiting_user',
   AWAITING_TS = 'awaiting_ts',
   AWAITING_TOOL = 'awaiting_tool',

@@ -45,9 +45,11 @@ export function createInitialState(
     localContext: [],
     globalContext: [],
     pendingAI: null,
+    pendingCompress: null,
     pendingTS: null,
     pendingImportedTsCall: null,
     pendingToolCall: null,
+    lastUsedModel: null,
     rootDir: options?.rootDir ?? process.cwd(),
     error: null,
     errorObject: null,
@@ -241,6 +243,43 @@ export function resumeWithImportedTsResult(state: RuntimeState, result: unknown)
         instructionType: 'imported_ts_call_result',
         details: { funcName: state.pendingImportedTsCall.funcName },
         result,
+      },
+    ],
+  };
+}
+
+// Resume execution after compress AI summarization
+export function resumeWithCompressResult(state: RuntimeState, summary: string): RuntimeState {
+  if (state.status !== 'awaiting_compress' || !state.pendingCompress) {
+    throw new Error('Cannot resume: not awaiting compress result');
+  }
+
+  const { entryIndex, scopeType, label } = state.pendingCompress;
+  const frame = state.callStack[state.callStack.length - 1];
+
+  // Replace loop entries with summary, keeping scope markers
+  const newOrderedEntries: FrameEntry[] = [
+    ...frame.orderedEntries.slice(0, entryIndex),
+    { kind: 'scope-enter', scopeType, label },
+    { kind: 'summary', text: summary },
+    { kind: 'scope-exit', scopeType, label },
+  ];
+
+  return {
+    ...state,
+    status: 'running',
+    pendingCompress: null,
+    callStack: [
+      ...state.callStack.slice(0, -1),
+      { ...frame, orderedEntries: newOrderedEntries },
+    ],
+    executionLog: [
+      ...state.executionLog,
+      {
+        timestamp: Date.now(),
+        instructionType: 'compress_result',
+        details: { scopeType, label, prompt: state.pendingCompress.prompt },
+        result: summary,
       },
     ],
   };

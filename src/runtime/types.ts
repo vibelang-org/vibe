@@ -9,6 +9,7 @@ export type RuntimeStatus =
   | 'running'
   | 'paused'
   | 'awaiting_ai'
+  | 'awaiting_compress'  // Waiting for AI to compress loop context
   | 'awaiting_user'
   | 'awaiting_ts'
   | 'awaiting_tool'
@@ -221,6 +222,16 @@ export interface PendingAI {
   vibeScopeParams?: Array<{ name: string; type: string; value: unknown }>;
 }
 
+// Pending compress request (for compress context mode)
+export interface PendingCompress {
+  prompt: string | null;           // Custom prompt or null for default
+  model: string;                   // Model variable name to use
+  entriesToSummarize: FrameEntry[]; // Entries to compress
+  entryIndex: number;              // Where scope started in orderedEntries
+  scopeType: 'for' | 'while';
+  label?: string;
+}
+
 // Pending TypeScript evaluation (inline ts block)
 export interface PendingTS {
   params: string[];
@@ -285,9 +296,13 @@ export interface RuntimeState {
 
   // Pending async operation
   pendingAI: PendingAI | null;
+  pendingCompress: PendingCompress | null;
   pendingTS: PendingTS | null;
   pendingImportedTsCall: PendingImportedTsCall | null;
   pendingToolCall: PendingToolCall | null;
+
+  // Model tracking for compress
+  lastUsedModel: string | null;  // Set on model declaration, updated on AI calls
 
   // Root directory for file operation sandboxing
   rootDir: string;

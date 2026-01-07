@@ -278,12 +278,32 @@ class VibeAstVisitor extends BaseVibeVisitor {
     };
   }
 
-  contextMode(ctx: { Forget?: IToken[]; Verbose?: IToken[]; Compress?: IToken[]; StringLiteral?: IToken[] }): AST.ContextMode {
+  contextMode(ctx: { Forget?: IToken[]; Verbose?: IToken[]; Compress?: IToken[]; StringLiteral?: IToken[]; Identifier?: IToken[] }): AST.ContextMode {
     if (ctx.Forget) return 'forget';
     if (ctx.Verbose) return 'verbose';
-    // Compress with optional prompt
-    const prompt = ctx.StringLiteral ? parseStringLiteral(ctx.StringLiteral[0]) : null;
-    return { compress: prompt };
+    // Compress with optional args: compress, compress(arg1), compress(arg1, arg2)
+    // arg1 can be string literal or identifier (prompt or model - resolved at semantic analysis)
+    // arg2 is always identifier (model)
+    let arg1: AST.CompressArg | null = null;
+    let arg2: AST.CompressArg | null = null;
+
+    if (ctx.StringLiteral) {
+      // First arg is string literal
+      arg1 = { kind: 'literal', value: parseStringLiteral(ctx.StringLiteral[0]) };
+      // Second arg (if present) is identifier
+      if (ctx.Identifier?.[0]) {
+        arg2 = { kind: 'identifier', name: ctx.Identifier[0].image };
+      }
+    } else if (ctx.Identifier) {
+      // First arg is identifier
+      arg1 = { kind: 'identifier', name: ctx.Identifier[0].image };
+      // Second arg (if present) is also identifier
+      if (ctx.Identifier[1]) {
+        arg2 = { kind: 'identifier', name: ctx.Identifier[1].image };
+      }
+    }
+
+    return { compress: { arg1, arg2 } };
   }
 
   blockStatement(ctx: { LBrace: IToken[]; statement?: CstNode[] }): AST.BlockStatement {

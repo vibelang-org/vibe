@@ -1,4 +1,4 @@
-import type { RuntimeState, ContextEntry, ContextVariable, ContextPrompt, ContextToolCall } from './types';
+import type { RuntimeState, ContextEntry, ContextVariable, ContextPrompt, ContextToolCall, FrameEntry } from './types';
 
 // Types that are filtered from context (config/instructions, not data for AI)
 const FILTERED_TYPES = ['model', 'prompt'];
@@ -305,4 +305,58 @@ function formatFrameGroups(entries: ContextEntry[], lines: string[]): void {
 
     lines.push('');
   }
+}
+
+/**
+ * Format FrameEntries for AI summarization (used by compress mode).
+ * Converts frame entries into a human-readable format suitable for AI summarization.
+ */
+export function formatEntriesForSummarization(entries: FrameEntry[]): string {
+  const lines: string[] = [];
+
+  for (const entry of entries) {
+    if (entry.kind === 'variable') {
+      const typeStr = entry.type ? ` (${entry.type})` : '';
+      const valueStr = typeof entry.value === 'object' ? JSON.stringify(entry.value) : String(entry.value);
+      const sourceStr = entry.source === 'ai' ? ' [from AI]' : entry.source === 'user' ? ' [from user]' : '';
+      lines.push(`Variable ${entry.name}${typeStr} = ${valueStr}${sourceStr}`);
+    } else if (entry.kind === 'prompt') {
+      lines.push(`AI ${entry.aiType}: "${entry.prompt}"`);
+      if (entry.toolCalls && entry.toolCalls.length > 0) {
+        for (const toolCall of entry.toolCalls) {
+          const argsStr = JSON.stringify(toolCall.args);
+          lines.push(`  Tool call: ${toolCall.toolName}(${argsStr})`);
+          if (toolCall.error) {
+            lines.push(`  Error: ${toolCall.error}`);
+          } else if (toolCall.result !== undefined) {
+            const resultStr = typeof toolCall.result === 'object' ? JSON.stringify(toolCall.result) : String(toolCall.result);
+            lines.push(`  Result: ${resultStr}`);
+          }
+        }
+      }
+      if (entry.response !== undefined) {
+        const responseStr = typeof entry.response === 'object' ? JSON.stringify(entry.response) : String(entry.response);
+        lines.push(`  Response: ${responseStr}`);
+      }
+    } else if (entry.kind === 'scope-enter') {
+      const labelStr = entry.label ? ` (${entry.label})` : '';
+      lines.push(`==> ${entry.scopeType}${labelStr} started`);
+    } else if (entry.kind === 'scope-exit') {
+      const labelStr = entry.label ? ` (${entry.label})` : '';
+      lines.push(`<== ${entry.scopeType}${labelStr} ended`);
+    } else if (entry.kind === 'summary') {
+      lines.push(`Summary: ${entry.text}`);
+    } else if (entry.kind === 'tool-call') {
+      const argsStr = JSON.stringify(entry.args);
+      lines.push(`Tool call: ${entry.toolName}(${argsStr})`);
+      if (entry.error) {
+        lines.push(`  Error: ${entry.error}`);
+      } else if (entry.result !== undefined) {
+        const resultStr = typeof entry.result === 'object' ? JSON.stringify(entry.result) : String(entry.result);
+        lines.push(`  Result: ${resultStr}`);
+      }
+    }
+  }
+
+  return lines.join('\n');
 }

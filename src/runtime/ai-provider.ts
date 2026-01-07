@@ -87,11 +87,19 @@ export function createRealAIProvider(getState: () => RuntimeState): AIProvider {
   return {
     async execute(prompt: string): Promise<AIExecutionResult> {
       const state = getState();
-      if (!state.pendingAI) {
-        throw new Error('No pending AI request');
-      }
 
-      const modelName = state.pendingAI.model;
+      // Get model name from pendingAI or pendingCompress
+      let modelName: string;
+      let aiType: 'do' | 'vibe' | 'compress';
+      if (state.pendingAI) {
+        modelName = state.pendingAI.model;
+        aiType = state.pendingAI.type;
+      } else if (state.pendingCompress) {
+        modelName = state.pendingCompress.model;
+        aiType = 'compress';
+      } else {
+        throw new Error('No pending AI or compress request');
+      }
       const modelValue = getModelValue(state, modelName);
       if (!modelValue) {
         throw new Error(`Model '${modelName}' not found in scope`);
@@ -121,8 +129,10 @@ export function createRealAIProvider(getState: () => RuntimeState): AIProvider {
       const formattedContext = formatContextForAI(context);
 
       // Build the request with tools
+      // For compress, treat as single-round 'do' type
+      const requestType = aiType === 'compress' ? 'do' : aiType;
       const request: AIRequest = {
-        ...buildAIRequest(model, prompt, formattedContext.text, state.pendingAI.type, targetType),
+        ...buildAIRequest(model, prompt, formattedContext.text, requestType, targetType),
         tools: toolSchemas.length > 0 ? toolSchemas : undefined,
       };
 
@@ -130,9 +140,9 @@ export function createRealAIProvider(getState: () => RuntimeState): AIProvider {
       const execute = getProviderExecutor(model.provider!);
 
       // Execute with tool loop (handles multi-turn tool calling)
-      // 'do' = single round (maxRounds: 1), 'vibe' = multi-turn (maxRounds: 10)
+      // 'do'/'compress' = single round (maxRounds: 1), 'vibe' = multi-turn (maxRounds: 10)
       const maxRetries = modelValue.maxRetriesOnError ?? 3;
-      const isDo = state.pendingAI.type === 'do';
+      const isDo = aiType === 'do' || aiType === 'compress';
       const { response, rounds } = await executeWithTools(
         request,
         modelTools,
