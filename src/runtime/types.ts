@@ -366,7 +366,7 @@ export type Instruction =
   | { op: 'exit_block'; savedKeys: string[]; location: SourceLocation }
 
   // AI operations (pause points)
-  | { op: 'ai_vibe'; model: string; context: AST.ContextSpecifier; operationType: 'do' | 'vibe'; location: SourceLocation }
+  | { op: 'ai_vibe'; model: string | null; context: AST.ContextSpecifier | null; operationType: 'do' | 'vibe'; location: SourceLocation }
 
   // TypeScript evaluation (pause point)
   | { op: 'ts_eval'; params: string[]; body: string; location: SourceLocation }

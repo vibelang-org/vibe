@@ -3,35 +3,23 @@ import { parse } from '../../parse';
 
 describe('Syntax Errors - Vibe Expression', () => {
   // ============================================================================
-  // Missing arguments
+  // Vibe/Do with no arguments at all (prompt is required)
   // ============================================================================
 
   test('vibe with no arguments', () => {
+    expect(() => parse(`
+let x = vibe
+`)).toThrow();
+  });
+
+  test('do with no arguments', () => {
     expect(() => parse(`
 let x = do
 `)).toThrow();
   });
 
-  test('vibe with only prompt', () => {
-    expect(() => parse(`
-let x = vibe "what is AI"
-`)).toThrow();
-  });
-
-  test('vibe with only prompt and model', () => {
-    expect(() => parse(`
-let x = vibe "what is AI" myModel
-`)).toThrow();
-  });
-
-  test('vibe missing prompt', () => {
-    expect(() => parse(`
-let x = vibe myModel default
-`)).toThrow();
-  });
-
   // ============================================================================
-  // Invalid prompt argument
+  // Invalid prompt argument (special characters that can't start an expression)
   // ============================================================================
 
   test('vibe with equals as prompt', () => {
@@ -84,11 +72,9 @@ let x = vibe "prompt" myModel ,
 `)).toThrow();
   });
 
-  test('vibe with string as context', () => {
-    expect(() => parse(`
-let x = vibe "prompt" myModel "invalid"
-`)).toThrow();
-  });
+  // Note: `vibe "prompt" myModel "invalid"` parses successfully because
+  // the grammar treats "invalid" as a separate expression statement.
+  // The semantic analyzer catches this as an error.
 
   // ============================================================================
   // Do in invalid positions
@@ -104,42 +90,6 @@ model myModel = vibe "prompt" otherModel default
     expect(() => parse(`
 function test() {
   let x = vibe "prompt" myModel default
-`)).toThrow();
-  });
-
-  // ============================================================================
-  // Nested do errors
-  // ============================================================================
-
-  test('nested vibe missing inner arguments', () => {
-    expect(() => parse(`
-let x = vibe (vibe "inner") myModel default
-`)).toThrow();
-  });
-
-  test('vibe inside function with missing context', () => {
-    expect(() => parse(`
-function askAI() {
-  return vibe "question" myModel
-}
-`)).toThrow();
-  });
-
-  // ============================================================================
-  // Do with incomplete surrounding statements
-  // ============================================================================
-
-  test('const with vibe missing context', () => {
-    expect(() => parse(`
-const x = vibe "prompt" myModel
-`)).toThrow();
-  });
-
-  test('vibe in if condition missing context', () => {
-    expect(() => parse(`
-if vibe "prompt" myModel {
-  let x = "yes"
-}
 `)).toThrow();
   });
 });

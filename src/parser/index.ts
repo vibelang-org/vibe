@@ -355,18 +355,16 @@ class VibeParser extends CstParser {
       {
         ALT: () => {
           this.CONSUME(T.Vibe);
-          this.SUBRULE(this.expression);        // prompt
-          this.SUBRULE2(this.expression);       // model
-          this.SUBRULE(this.contextSpecifier);  // context
+          this.SUBRULE(this.expression);        // prompt (required)
+          this.SUBRULE(this.vibeModifiers);     // optional model and/or context
         },
       },
       // AI operation - do (single-round, no tool loop)
       {
         ALT: () => {
           this.CONSUME(T.Do);
-          this.SUBRULE3(this.expression);       // prompt
-          this.SUBRULE4(this.expression);       // model
-          this.SUBRULE2(this.contextSpecifier); // context
+          this.SUBRULE2(this.expression);       // prompt (required)
+          this.SUBRULE2(this.vibeModifiers);    // optional model and/or context
         },
       },
       // Assignment expression (identifier = expression)
@@ -377,6 +375,36 @@ class VibeParser extends CstParser {
       // Logical or and below
       { ALT: () => this.SUBRULE(this.orExpression) },
     ]);
+  });
+
+  // Optional model and/or context for vibe/do expressions
+  // Syntaxes:
+  //   (nothing)                    → no model, default context
+  //   default | local              → no model, explicit context
+  //   identifier                   → explicit model, default context
+  //   identifier contextSpecifier → explicit model, explicit context
+  private vibeModifiers = this.RULE('vibeModifiers', () => {
+    // Context keyword (default/local) without model
+    this.OPTION(() => {
+      this.OR([
+        {
+          GATE: () => this.LA(1).tokenType === T.Default || this.LA(1).tokenType === T.Local,
+          ALT: () => this.SUBRULE(this.contextSpecifier),
+        },
+        // Model identifier - only if NOT followed by ( (which would be a function call)
+        {
+          GATE: () => this.LA(1).tokenType === T.Identifier && this.LA(2).tokenType !== T.LParen,
+          ALT: () => {
+            this.CONSUME(T.Identifier);  // model
+            this.OPTION2(() => {
+              this.SUBRULE2(this.contextSpecifier);  // optional context
+            });
+          },
+        },
+        // Empty alternative - no modifiers (when next token doesn't match model/context pattern)
+        { ALT: () => { /* no-op */ } },
+      ]);
+    });
   });
 
   // Or: or (lowest precedence for logical)

@@ -269,8 +269,8 @@ export function makeMemberExpression(
 export function makeVibeExpression(
   token: IToken,
   prompt: AST.Expression,
-  model: AST.Expression,
-  context: AST.ContextSpecifier,
+  model: AST.Expression | null,
+  context: AST.ContextSpecifier | null,
   operationType: AST.AIOperationType = 'vibe'
 ): AST.VibeExpression {
   return {

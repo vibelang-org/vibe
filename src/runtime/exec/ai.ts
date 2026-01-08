@@ -5,9 +5,10 @@ import type { RuntimeState } from '../types';
 import { currentFrame } from '../state';
 
 /**
- * Extract model name from expression (must be an identifier).
+ * Extract model name from expression (must be an identifier), or null if not provided.
  */
-export function extractModelName(expr: AST.Expression): string {
+export function extractModelName(expr: AST.Expression | null): string | null {
+  if (expr === null) return null;
   if (expr.type === 'Identifier') return expr.name;
   throw new Error('Model must be an identifier');
 }
@@ -29,8 +30,14 @@ export function execVibeExpression(state: RuntimeState, expr: AST.VibeExpression
 
 /**
  * Get context data for AI based on context specifier.
+ * If context is null, defaults to 'default' (full execution history).
  */
-export function getContextForAI(state: RuntimeState, context: AST.ContextSpecifier): unknown[] {
+export function getContextForAI(state: RuntimeState, context: AST.ContextSpecifier | null): unknown[] {
+  // Default to full execution history if no context specified
+  if (context === null) {
+    return state.executionLog;
+  }
+
   switch (context.kind) {
     case 'local':
       // Current frame's execution log only
@@ -63,20 +70,31 @@ export function getContextForAI(state: RuntimeState, context: AST.ContextSpecifi
  * AI Vibe/Do - pause for AI response.
  * Note: The prompt is added to orderedEntries in resumeWithAIResponse (after completion),
  * not here, so it doesn't appear in context before the AI call completes.
+ *
+ * If model is null, uses lastUsedModel from state.
+ * If context is null, defaults to 'default' (full execution history).
  */
-export function execAIVibe(state: RuntimeState, model: string, context: AST.ContextSpecifier, operationType: 'do' | 'vibe'): RuntimeState {
+export function execAIVibe(state: RuntimeState, model: string | null, context: AST.ContextSpecifier | null, operationType: 'do' | 'vibe'): RuntimeState {
   const prompt = String(state.lastResult);
+
+  // Resolve model: use provided model or fall back to lastUsedModel
+  const resolvedModel = model ?? state.lastUsedModel;
+  if (!resolvedModel) {
+    throw new Error('No model specified and no previous model has been used. Please specify a model.');
+  }
+
   const contextData = getContextForAI(state, context);
+  const contextKind = context?.kind ?? 'default';
 
   return {
     ...state,
     status: 'awaiting_ai',
     // Update lastUsedModel for compress to use
-    lastUsedModel: model,
+    lastUsedModel: resolvedModel,
     pendingAI: {
       type: operationType,  // 'do' = single round, 'vibe' = multi-turn
       prompt,
-      model,
+      model: resolvedModel,
       context: contextData,
     },
     executionLog: [
@@ -84,7 +102,7 @@ export function execAIVibe(state: RuntimeState, model: string, context: AST.Cont
       {
         timestamp: Date.now(),
         instructionType: operationType === 'do' ? 'ai_do_request' : 'ai_vibe_request',
-        details: { prompt, model, contextKind: context.kind },
+        details: { prompt, model: resolvedModel, contextKind },
       },
     ],
   };

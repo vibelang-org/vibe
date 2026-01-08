@@ -195,28 +195,100 @@ function askAI(question: text): text {
   });
 });
 
+// ============================================================================
+// Optional Model and Context Tests
+// ============================================================================
+
+describe('Parser - Vibe Expression with Optional Modifiers', () => {
+  test('vibe with prompt only (no model, no context)', () => {
+    const ast = parse(`
+let x = vibe "just a prompt"
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      name: 'x',
+      initializer: {
+        type: 'VibeExpression',
+        operationType: 'vibe',
+        prompt: {
+          type: 'StringLiteral',
+          value: 'just a prompt',
+        },
+        model: null,
+        context: null,
+      },
+    });
+  });
+
+  test('vibe with prompt and context keyword only (no model)', () => {
+    const ast = parse(`
+let x = vibe "prompt" default
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      initializer: {
+        type: 'VibeExpression',
+        prompt: { type: 'StringLiteral', value: 'prompt' },
+        model: null,
+        context: { type: 'ContextSpecifier', kind: 'default' },
+      },
+    });
+  });
+
+  test('vibe with prompt and local context (no model)', () => {
+    const ast = parse(`
+let x = vibe "prompt" local
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      initializer: {
+        type: 'VibeExpression',
+        model: null,
+        context: { type: 'ContextSpecifier', kind: 'local' },
+      },
+    });
+  });
+
+  test('vibe with prompt and model only (no context)', () => {
+    const ast = parse(`
+let x = vibe "prompt" myModel
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      initializer: {
+        type: 'VibeExpression',
+        prompt: { type: 'StringLiteral', value: 'prompt' },
+        model: { type: 'Identifier', name: 'myModel' },
+        context: null,
+      },
+    });
+  });
+
+  test('vibe with all three: prompt, model, and context', () => {
+    const ast = parse(`
+let x = vibe "prompt" myModel default
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      initializer: {
+        type: 'VibeExpression',
+        prompt: { type: 'StringLiteral', value: 'prompt' },
+        model: { type: 'Identifier', name: 'myModel' },
+        context: { type: 'ContextSpecifier', kind: 'default' },
+      },
+    });
+  });
+});
+
 describe('Syntax Errors - Vibe Expression', () => {
-  test('vibe missing model argument', () => {
-    expect(() => parse(`
-vibe "prompt" default
-`)).toThrow();
-  });
-
-  test('vibe missing context argument', () => {
-    expect(() => parse(`
-vibe "prompt" myModel
-`)).toThrow();
-  });
-
-  test('vibe with no arguments', () => {
+  test('vibe with no arguments at all', () => {
     expect(() => parse(`
 vibe
-`)).toThrow();
-  });
-
-  test('vibe with only prompt', () => {
-    expect(() => parse(`
-let x = vibe "just a prompt"
 `)).toThrow();
   });
 });
@@ -354,19 +426,58 @@ function summarize(input: text): text {
   });
 });
 
+describe('Parser - Do Expression with Optional Modifiers', () => {
+  test('do with prompt only (no model, no context)', () => {
+    const ast = parse(`
+let x = do "just a prompt"
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      initializer: {
+        type: 'VibeExpression',
+        operationType: 'do',
+        prompt: { type: 'StringLiteral', value: 'just a prompt' },
+        model: null,
+        context: null,
+      },
+    });
+  });
+
+  test('do with prompt and context only (no model)', () => {
+    const ast = parse(`
+let x = do "prompt" default
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      initializer: {
+        type: 'VibeExpression',
+        operationType: 'do',
+        model: null,
+        context: { type: 'ContextSpecifier', kind: 'default' },
+      },
+    });
+  });
+
+  test('do with prompt and model only (no context)', () => {
+    const ast = parse(`
+let x = do "prompt" myModel
+`);
+    expect(ast.body).toHaveLength(1);
+    expect(ast.body[0]).toMatchObject({
+      type: 'LetDeclaration',
+      initializer: {
+        type: 'VibeExpression',
+        operationType: 'do',
+        model: { type: 'Identifier', name: 'myModel' },
+        context: null,
+      },
+    });
+  });
+});
+
 describe('Syntax Errors - Do Expression', () => {
-  test('do missing model argument', () => {
-    expect(() => parse(`
-do "prompt" default
-`)).toThrow();
-  });
-
-  test('do missing context argument', () => {
-    expect(() => parse(`
-do "prompt" myModel
-`)).toThrow();
-  });
-
   test('do with no arguments', () => {
     expect(() => parse(`
 do

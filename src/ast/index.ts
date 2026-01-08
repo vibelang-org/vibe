@@ -310,8 +310,8 @@ export interface VibeExpression extends BaseNode {
   type: 'VibeExpression';
   operationType: AIOperationType;  // 'do' = single call, 'vibe' = tool loop
   prompt: Expression;
-  model: Expression;
-  context: ContextSpecifier;
+  model: Expression | null;        // null = use lastUsedModel
+  context: ContextSpecifier | null; // null = use 'default' context
 }
 
 export interface TsBlock extends BaseNode {

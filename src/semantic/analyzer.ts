@@ -150,8 +150,8 @@ export class SemanticAnalyzer {
       case 'VibeExpression':
         this.visitExpression(node.prompt);
         this.checkPromptType(node.prompt);
-        this.checkModelType(node.model);
-        this.checkContextVariable(node.context);
+        if (node.model) this.checkModelType(node.model);
+        if (node.context) this.checkContextVariable(node.context);
         break;
 
       case 'CallExpression':

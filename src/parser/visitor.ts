@@ -323,15 +323,44 @@ class VibeAstVisitor extends BaseVibeVisitor {
   // Expressions
   // ============================================================================
 
-  expression(ctx: { Vibe?: IToken[]; Do?: IToken[]; assignmentExpression?: CstNode[]; orExpression?: CstNode[]; expression?: CstNode[]; contextSpecifier?: CstNode[] }): AST.Expression {
+  expression(ctx: { Vibe?: IToken[]; Do?: IToken[]; assignmentExpression?: CstNode[]; orExpression?: CstNode[]; expression?: CstNode[]; vibeModifiers?: CstNode[] }): AST.Expression {
     if (ctx.Vibe) {
-      return makeVibeExpression(ctx.Vibe[0], this.visit(ctx.expression![0]), this.visit(ctx.expression![1]), this.visit(ctx.contextSpecifier![0]), 'vibe');
+      const prompt = this.visit(ctx.expression![0]);
+      const modifiers = this.visit(ctx.vibeModifiers![0]) as { model: AST.Expression | null; context: AST.ContextSpecifier | null };
+      return makeVibeExpression(ctx.Vibe[0], prompt, modifiers.model, modifiers.context, 'vibe');
     }
     if (ctx.Do) {
-      return makeVibeExpression(ctx.Do[0], this.visit(ctx.expression![0]), this.visit(ctx.expression![1]), this.visit(ctx.contextSpecifier![0]), 'do');
+      const prompt = this.visit(ctx.expression![0]);
+      const modifiers = this.visit(ctx.vibeModifiers![0]) as { model: AST.Expression | null; context: AST.ContextSpecifier | null };
+      return makeVibeExpression(ctx.Do[0], prompt, modifiers.model, modifiers.context, 'do');
     }
     if (ctx.assignmentExpression) return this.visit(ctx.assignmentExpression);
     return this.visit(ctx.orExpression!);
+  }
+
+  // Parse optional model and context modifiers for vibe/do
+  vibeModifiers(ctx: { Identifier?: IToken[]; contextSpecifier?: CstNode[] }): { model: AST.Expression | null; context: AST.ContextSpecifier | null } {
+    // No modifiers at all
+    if (!ctx.Identifier && !ctx.contextSpecifier) {
+      return { model: null, context: null };
+    }
+
+    // Context keyword only (default/local), no model
+    if (!ctx.Identifier && ctx.contextSpecifier) {
+      return { model: null, context: this.visit(ctx.contextSpecifier[0]) };
+    }
+
+    // Model identifier present
+    const modelToken = ctx.Identifier![0];
+    const model: AST.Identifier = {
+      type: 'Identifier',
+      name: modelToken.image,
+      location: tokenLocation(modelToken),
+    };
+
+    // Model with optional context
+    const context = ctx.contextSpecifier ? this.visit(ctx.contextSpecifier[0]) : null;
+    return { model, context };
   }
 
   // Or: or
