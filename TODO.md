@@ -17,28 +17,6 @@
 - [ ] Context checkpoints beyond local/global
 - [ ] Context orchestration functions
 - [ ] Variable visibility modifiers
-- [x] Implement `compress` keyword for context compression (PLAN: PLAN-compress-keyword.md) ✅
-  - [x] Add `awaiting_compress` status to RuntimeStatus
-  - [x] Add `pendingCompress` field to RuntimeState
-  - [x] Add `resumeWithCompressResult` function to state.ts
-  - [x] Update `applyContextMode` in step.ts to pause for AI
-  - [x] Add `formatEntriesForSummarization` helper to context.ts
-  - [x] Handle `awaiting_compress` in runner
-  - [x] Update tests in context-modes.test.ts
-  - [x] Flexible syntax: `compress`, `compress(model)`, `compress("prompt")`, `compress("prompt", model)`, `compress(promptVar)`, `compress(promptVar, model)`
-  - [x] Semantic validation for compress arguments
-  - [x] `lastUsedModel` tracking for default model resolution
-- [x] AIResultObject with toolCalls access (PLAN: PLAN-ai-result-object.md) ✅
-  - [x] `const ret = vibe "..."` returns object with `.value` and `.toolCalls`
-  - [x] Primitive coercion: `ret` in expressions resolves to value
-  - [x] `.toolCalls` returns array of `{tool, args, result, error, duration}`
-  - [x] Python-style array slicing: `arr[1:3]`, `arr[:-1]`, `arr[::2]`
-  - [x] Logical indexing: `arr[boolArray]` for filtering
-
-### Cleanup
-- [x] Remove all `do` keyword references from docs (replaced by `vibe`)
-- [x] Remove `cache` keyword from lexer and docs (no longer needed)
-- [x] Fix all TypeScript errors (`bun tsc --noEmit`)
 
 ### Permission System
 - [ ] Command permission scheme (like Claude Code settings)
@@ -50,10 +28,9 @@
 
 ### npm Publishing
 - [ ] Publish Vibe CLI to npm as `@vibe-lang/vibe` (PLAN: PLAN-npm-publish.md)
-  - [ ] Create build script for cross-platform binaries (`scripts/build.ts`)
-  - [ ] Create platform packages (`@vibe-lang/vibe-linux-x64`, etc.)
-  - [ ] Create main wrapper package with postinstall script
-  - [ ] Create publish script (`scripts/publish.ts`)
+  - [x] Create publish script (`scripts/publish.ts`)
+  - [ ] Test local install with `npm pack`
+  - [ ] Publish to npm registry
   - [ ] Update README with installation instructions
 
 ### Real-World Examples
@@ -89,6 +66,11 @@
 - [ ] Package symbol-tree as shareable plugin
 
 ## Completed (Last 10)
+
+- [x] Codebase cleanup
+  - [x] Remove all `do` keyword references from docs (replaced by `vibe`)
+  - [x] Remove `cache` keyword from lexer and docs
+  - [x] Fix all TypeScript errors (`bun tsc --noEmit`)
 
 - [x] AIResultObject with toolCalls and Python-style array slicing
   - [x] AI calls return `{value, toolCalls}` object with primitive coercion
