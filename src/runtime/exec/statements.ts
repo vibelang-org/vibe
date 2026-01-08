@@ -5,7 +5,7 @@ import type { SourceLocation } from '../../errors';
 import type { RuntimeState, Variable } from '../types';
 import { currentFrame } from '../state';
 import { requireBoolean, validateAndCoerce } from '../validation';
-import { execDeclareVar } from './variables';
+import { execDeclareVar, lookupVariable } from './variables';
 import { getImportedVibeFunction } from '../modules';
 
 /**
@@ -61,6 +61,23 @@ export function extractNumberValue(expr: AST.Expression | null): number | null {
 }
 
 /**
+ * Evaluate a simple expression to get its runtime value.
+ * Handles literals and identifier lookups.
+ */
+function evaluateSimpleExpression(state: RuntimeState, expr: AST.Expression | null): unknown {
+  if (!expr) return null;
+  if (expr.type === 'StringLiteral') return expr.value;
+  if (expr.type === 'NumberLiteral') return expr.value;
+  if (expr.type === 'BooleanLiteral') return expr.value;
+  if (expr.type === 'Identifier') {
+    const found = lookupVariable(state, expr.name);
+    if (found) return found.variable.value;
+    return null;
+  }
+  return null;
+}
+
+/**
  * Model declaration - store model config in locals.
  * If tools are specified, push evaluation instructions.
  */
@@ -91,12 +108,12 @@ export function finalizeModelDeclaration(
 ): RuntimeState {
   const modelValue = {
     __vibeModel: true,
-    name: extractStringValue(stmt.config.modelName),
-    apiKey: extractStringValue(stmt.config.apiKey),
-    url: extractStringValue(stmt.config.url),
-    provider: extractStringValue(stmt.config.provider),
-    maxRetriesOnError: extractNumberValue(stmt.config.maxRetriesOnError),
-    thinkingLevel: extractStringValue(stmt.config.thinkingLevel),
+    name: evaluateSimpleExpression(state, stmt.config.modelName) as string | null,
+    apiKey: evaluateSimpleExpression(state, stmt.config.apiKey) as string | null,
+    url: evaluateSimpleExpression(state, stmt.config.url) as string | null,
+    provider: evaluateSimpleExpression(state, stmt.config.provider) as string | null,
+    maxRetriesOnError: evaluateSimpleExpression(state, stmt.config.maxRetriesOnError) as number | null,
+    thinkingLevel: evaluateSimpleExpression(state, stmt.config.thinkingLevel) as string | null,
     tools,
   };
 

@@ -104,6 +104,31 @@ let users: json = vibe "fetch users with config" gpt default
     expect(users[1].name).toBe('bob');
   });
 
+  test('model config resolves variable references', async () => {
+    const ast = parse(`
+const myKey = ts() {
+  return "test-api-key-123";
+}
+
+model testModel = {
+  name: "test-model",
+  apiKey: myKey,
+  url: "https://api.example.com",
+  provider: "anthropic"
+}
+
+let keyValue = ts(testModel) {
+  return testModel.apiKey;
+}
+`);
+    const provider = createMockProvider('');
+    const runtime = new Runtime(ast, provider);
+    await runtime.run();
+
+    // Verify the variable reference was resolved to its value, not the identifier name
+    expect(runtime.getValue('keyValue')).toBe('test-api-key-123');
+  });
+
   test('complex json structure matches expected exactly', async () => {
     const ast = parse(`
 model api = { name: "gpt-4", apiKey: "key", url: "https://api.test.com" }
