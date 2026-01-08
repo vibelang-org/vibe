@@ -5,7 +5,7 @@ import type { SourceLocation } from '../../errors';
 import type { RuntimeState, Variable } from '../types';
 import { currentFrame } from '../state';
 import { requireBoolean, validateAndCoerce } from '../validation';
-import { execDeclareVar, lookupVariable } from './variables';
+import { execDeclareVar } from './variables';
 import { getImportedVibeFunction } from '../modules';
 
 /**
@@ -41,80 +41,62 @@ export function execConstDeclaration(state: RuntimeState, stmt: AST.ConstDeclara
   };
 }
 
-/**
- * Extract string value from an expression (for model config).
- */
-export function extractStringValue(expr: AST.Expression | null): string | null {
-  if (!expr) return null;
-  if (expr.type === 'StringLiteral') return expr.value;
-  if (expr.type === 'Identifier') return expr.name;
-  return null;
-}
+// Model config fields in evaluation order
+const MODEL_CONFIG_FIELDS = ['modelName', 'apiKey', 'url', 'provider', 'maxRetriesOnError', 'thinkingLevel', 'tools'] as const;
 
 /**
- * Extract number value from an expression (for model config).
- */
-export function extractNumberValue(expr: AST.Expression | null): number | null {
-  if (!expr) return null;
-  if (expr.type === 'NumberLiteral') return expr.value;
-  return null;
-}
-
-/**
- * Evaluate a simple expression to get its runtime value.
- * Handles literals and identifier lookups.
- */
-function evaluateSimpleExpression(state: RuntimeState, expr: AST.Expression | null): unknown {
-  if (!expr) return null;
-  if (expr.type === 'StringLiteral') return expr.value;
-  if (expr.type === 'NumberLiteral') return expr.value;
-  if (expr.type === 'BooleanLiteral') return expr.value;
-  if (expr.type === 'Identifier') {
-    const found = lookupVariable(state, expr.name);
-    if (found) return found.variable.value;
-    return null;
-  }
-  return null;
-}
-
-/**
- * Model declaration - store model config in locals.
- * If tools are specified, push evaluation instructions.
+ * Model declaration - evaluate all config expressions through instruction stack.
+ * This allows CallExpressions (like env(), ts blocks, function calls) to work in model config.
  */
 export function execModelDeclaration(state: RuntimeState, stmt: AST.ModelDeclaration): RuntimeState {
-  // If tools expression exists, evaluate it first then create model
-  if (stmt.config.tools) {
-    return {
-      ...state,
-      instructionStack: [
-        { op: 'exec_expression', expr: stmt.config.tools, location: stmt.config.tools.location },
-        { op: 'declare_model', stmt, location: stmt.location },
-        ...state.instructionStack,
-      ],
-    };
+  const instructions: Array<{ op: string; [key: string]: unknown }> = [];
+
+  // Push evaluation instructions for each config field
+  // Fields are evaluated in order and pushed to valueStack
+  for (const field of MODEL_CONFIG_FIELDS) {
+    const expr = stmt.config[field];
+    if (expr) {
+      instructions.push({ op: 'exec_expression', expr, location: expr.location });
+    } else {
+      // Use undefined for missing fields to preserve backward compatibility
+      instructions.push({ op: 'literal', value: undefined, location: stmt.location });
+    }
+    instructions.push({ op: 'push_value', location: stmt.location });
   }
 
-  // No tools, create model synchronously
-  return finalizeModelDeclaration(state, stmt, undefined);
+  // Finally, declare the model (will pop values from stack)
+  instructions.push({ op: 'declare_model', stmt, location: stmt.location });
+
+  return {
+    ...state,
+    instructionStack: [...instructions, ...state.instructionStack],
+  };
 }
 
 /**
- * Finalize model declaration with optional tools.
+ * Finalize model declaration by popping evaluated config values from valueStack.
  */
 export function finalizeModelDeclaration(
   state: RuntimeState,
-  stmt: AST.ModelDeclaration,
-  tools: unknown[] | undefined
+  stmt: AST.ModelDeclaration
 ): RuntimeState {
+  // Pop values from stack in reverse order (LIFO)
+  // Fields were pushed in order: modelName, apiKey, url, provider, maxRetriesOnError, thinkingLevel, tools
+  const fieldCount = MODEL_CONFIG_FIELDS.length;
+  const values = state.valueStack.slice(-fieldCount);
+  const newValueStack = state.valueStack.slice(0, -fieldCount);
+
+  const [modelName, apiKey, url, provider, maxRetriesOnError, thinkingLevel, tools] = values;
+
   const modelValue = {
     __vibeModel: true,
-    name: evaluateSimpleExpression(state, stmt.config.modelName) as string | null,
-    apiKey: evaluateSimpleExpression(state, stmt.config.apiKey) as string | null,
-    url: evaluateSimpleExpression(state, stmt.config.url) as string | null,
-    provider: evaluateSimpleExpression(state, stmt.config.provider) as string | null,
-    maxRetriesOnError: evaluateSimpleExpression(state, stmt.config.maxRetriesOnError) as number | null,
-    thinkingLevel: evaluateSimpleExpression(state, stmt.config.thinkingLevel) as string | null,
-    tools,
+    name: modelName as string | null,
+    apiKey: apiKey as string | null,
+    url: url as string | null,
+    provider: provider as string | null,
+    maxRetriesOnError: maxRetriesOnError as number | null,
+    thinkingLevel: thinkingLevel as string | null,
+    tools: tools as unknown[] | undefined,
   };
 
   const frame = currentFrame(state);
@@ -125,6 +107,7 @@ export function finalizeModelDeclaration(
 
   return {
     ...state,
+    valueStack: newValueStack,
     // Set lastUsedModel if not already set (first model declaration)
     lastUsedModel: state.lastUsedModel ?? stmt.name,
     callStack: [

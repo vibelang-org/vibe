@@ -6,17 +6,15 @@ import { parse } from '../parser/parse';
 import type { RuntimeState, TsModule, VibeModule, ExportedItem } from './types';
 import { resolve, dirname, join } from 'path';
 
-// System module path prefix
-const SYSTEM_MODULE_PREFIX = 'system/';
-
 // Map system module names to their implementation files
 const SYSTEM_MODULES: Record<string, string> = {
-  'system/tools': join(__dirname, 'stdlib', 'tools.ts'),
+  'system': join(__dirname, 'stdlib', 'index.ts'),
+  'system/tools': join(__dirname, 'stdlib', 'tools', 'index.ts'),
 };
 
 // Check if an import source is a system module
 function isSystemModule(source: string): boolean {
-  return source.startsWith(SYSTEM_MODULE_PREFIX);
+  return source === 'system' || source.startsWith('system/');
 }
 
 // Resolve a module path, handling system modules specially

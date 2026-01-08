@@ -1,9 +1,11 @@
-// Standard tools for Vibe - exported as VibeToolValue objects
+// Standard tools for AI models in Vibe
 // Import with: import { standardTools, readFile, writeFile, ... } from "system/tools"
+//
+// These are tools that AI models can use via the tools parameter.
+// For direct script use, import functions from "system" instead.
 
-import type { VibeToolValue, ToolContext } from '../tools/types';
-import { validatePathInSandbox } from '../tools/security';
-import { resolveValue } from '../types';
+import type { VibeToolValue, ToolContext } from '../../tools/types';
+import { validatePathInSandbox } from '../../tools/security';
 
 // Helper to escape regex special characters
 function escapeRegex(s: string): string {
@@ -407,24 +409,6 @@ export const env: VibeToolValue = {
   },
 };
 
-export const sleep: VibeToolValue = {
-  __vibeTool: true,
-  name: 'sleep',
-  schema: {
-    name: 'sleep',
-    description: 'Pause execution for a specified number of milliseconds.',
-    parameters: [
-      { name: 'ms', type: { type: 'number' }, description: 'Milliseconds to sleep', required: true },
-    ],
-    returns: { type: 'boolean' },
-  },
-  executor: async (args: Record<string, unknown>) => {
-    const ms = args.ms as number;
-    await new Promise((resolve) => setTimeout(resolve, ms));
-    return true;
-  },
-};
-
 export const now: VibeToolValue = {
   __vibeTool: true,
   name: 'now',
@@ -475,25 +459,6 @@ export const jsonStringify: VibeToolValue = {
   },
 };
 
-export const print: VibeToolValue = {
-  __vibeTool: true,
-  name: 'print',
-  schema: {
-    name: 'print',
-    description: 'Output a message to the console.',
-    parameters: [
-      { name: 'message', type: { type: 'string' }, description: 'The message to print', required: true },
-    ],
-    returns: { type: 'boolean' },
-  },
-  executor: async (args: Record<string, unknown>) => {
-    // Resolve AIResultObject to its value before printing
-    const message = resolveValue(args.message);
-    console.log(message);
-    return true;
-  },
-};
-
 export const random: VibeToolValue = {
   __vibeTool: true,
   name: 'random',
@@ -533,7 +498,7 @@ export const uuid: VibeToolValue = {
 };
 
 // =============================================================================
-// All Standard Tools
+// All Standard Tools (for AI models)
 // =============================================================================
 
 export const standardTools: VibeToolValue[] = [
@@ -553,11 +518,9 @@ export const standardTools: VibeToolValue[] = [
   dirExists,
   // Utility tools
   env,
-  sleep,
   now,
   jsonParse,
   jsonStringify,
-  print,
   random,
   uuid,
 ];

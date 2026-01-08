@@ -620,11 +620,9 @@ function executeInstruction(state: RuntimeState, instruction: Instruction): Runt
     case 'exec_tool_declaration':
       return execToolDeclaration(state, instruction.decl);
 
-    // Model declaration with tools
+    // Model declaration - config values are on the valueStack
     case 'declare_model': {
-      // lastResult contains the evaluated tools array
-      const tools = state.lastResult as unknown[] | undefined;
-      return finalizeModelDeclaration(state, instruction.stmt, tools);
+      return finalizeModelDeclaration(state, instruction.stmt);
     }
 
     // Member/property access

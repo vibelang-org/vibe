@@ -136,35 +136,13 @@ export function execCallFunction(
     return executeVibeFunction(state, func, args, newValueStack);
   }
 
-  // Handle tool call - callee is the VibeToolValue itself
+  // Handle tool call - tools cannot be called directly from vibe scripts
+  // They can only be used by AI models via the tools array
   if (typeof callee === 'object' && callee !== null && '__vibeTool' in callee) {
     const tool = callee as VibeToolValue;
-
-    // Build args object from positional arguments
-    const argsObj: Record<string, unknown> = {};
-    tool.schema.parameters.forEach((param, i) => {
-      argsObj[param.name] = args[i];
-    });
-
-    return {
-      ...state,
-      valueStack: newValueStack,
-      status: 'awaiting_tool',
-      pendingToolCall: {
-        toolName: tool.name,
-        toolCallId: `tool-${Date.now()}-${Math.random().toString(36).slice(2)}`,
-        args: argsObj,
-        executor: tool.executor,  // Include executor for later execution
-      },
-      executionLog: [
-        ...state.executionLog,
-        {
-          timestamp: Date.now(),
-          instructionType: 'tool_call_request',
-          details: { toolName: tool.name, args: argsObj },
-        },
-      ],
-    };
+    throw new Error(
+      `TypeError: Cannot call tool '${tool.name}' directly. Tools can only be used by AI models via the tools array in model declarations.`
+    );
   }
 
   // Handle bound method call on object (built-in methods)

@@ -111,7 +111,7 @@ export class SemanticAnalyzer {
         if (!this.atTopLevel) {
           this.error('Tools can only be declared at global scope', node.location);
         }
-        this.declare(node.name, 'function', node.location, {
+        this.declare(node.name, 'tool', node.location, {
           paramCount: node.params.length,
           paramTypes: node.params.map(p => p.typeAnnotation),
           returnType: node.returnType,
@@ -158,6 +158,7 @@ export class SemanticAnalyzer {
         this.visitExpression(node.callee);
         node.arguments.forEach((arg) => this.visitExpression(arg));
         this.checkCallArguments(node);
+        this.checkToolCall(node);
         break;
 
       case 'TsBlock':
@@ -253,11 +254,14 @@ export class SemanticAnalyzer {
       return;
     }
 
+    // Determine if this is a tool import (from system/tools)
+    const isToolImport = node.source === 'system/tools';
+
     // Register each imported name
     for (const spec of node.specifiers) {
       const existing = this.symbols.lookup(spec.local);
       if (existing) {
-        if (existing.kind === 'import') {
+        if (existing.kind === 'import' || existing.kind === 'tool') {
           this.error(
             `'${spec.local}' is already imported from another module`,
             node.location
@@ -269,7 +273,9 @@ export class SemanticAnalyzer {
           );
         }
       } else {
-        this.declare(spec.local, 'import', node.location);
+        // Mark imports from system/tools as tools (except standardTools array)
+        const kind = isToolImport && spec.local !== 'standardTools' ? 'tool' : 'import';
+        this.declare(spec.local, kind, node.location);
       }
     }
   }
@@ -277,7 +283,7 @@ export class SemanticAnalyzer {
   private validateModelConfig(node: AST.ModelDeclaration): void {
     const config = node.config;
     const requiredFields = ['name', 'apiKey', 'url'];
-    const optionalFields = ['provider', 'maxRetriesOnError'];
+    const optionalFields = ['provider', 'maxRetriesOnError', 'thinkingLevel', 'tools'];
     const validFields = [...requiredFields, ...optionalFields];
     const provided = new Set(config.providedFields);
 
@@ -398,6 +404,22 @@ export class SemanticAnalyzer {
 
     this.symbols.exitScope();
     this.inFunction = wasInFunction;
+  }
+
+  /**
+   * Check that we're not calling a tool directly.
+   * Tools can only be used by AI models via the tools array in model declarations.
+   */
+  private checkToolCall(node: AST.CallExpression): void {
+    if (node.callee.type !== 'Identifier') return;
+
+    const symbol = this.symbols.lookup(node.callee.name);
+    if (symbol?.kind === 'tool') {
+      this.error(
+        `Cannot call tool '${node.callee.name}' directly. Tools can only be used by AI models via the tools array in model declarations.`,
+        node.location
+      );
+    }
   }
 
   /**

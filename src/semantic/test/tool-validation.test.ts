@@ -206,4 +206,101 @@ tool greet(name: text): text
     // so this test documents that behavior would be caught
     // if it were syntactically allowed
   });
+
+  // ============================================================================
+  // Tool call validation - tools cannot be called directly
+  // ============================================================================
+
+  describe('Tool call validation', () => {
+    test('error when calling user-defined tool directly', () => {
+      const ast = parse(`
+tool greet(name: text): text
+  @description "Greet"
+{
+  ts(name) { return "Hello, " + name }
+}
+
+let result = greet("World")
+`);
+      const errors = analyze(ast);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain("Cannot call tool 'greet' directly");
+      expect(errors[0].message).toContain("Tools can only be used by AI models");
+    });
+
+    test('error when calling imported tool directly', () => {
+      const ast = parse(`
+import { now } from "system/tools"
+let timestamp = now()
+`);
+      const errors = analyze(ast);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain("Cannot call tool 'now' directly");
+    });
+
+    test('error when calling multiple tools directly', () => {
+      const ast = parse(`
+import { readFile, writeFile } from "system/tools"
+let content = readFile("test.txt")
+let _ = writeFile("out.txt", "data")
+`);
+      const errors = analyze(ast);
+      expect(errors).toHaveLength(2);
+      expect(errors[0].message).toContain("Cannot call tool 'readFile' directly");
+      expect(errors[1].message).toContain("Cannot call tool 'writeFile' directly");
+    });
+
+    test('no error when tool is used in model tools array', () => {
+      const ast = parse(`
+tool greet(name: text): text
+  @description "Greet"
+{
+  ts(name) { return "Hello, " + name }
+}
+
+model m = {
+  name: "gpt-4",
+  apiKey: "key",
+  url: "https://api.openai.com",
+  tools: [greet]
+}
+`);
+      const errors = analyze(ast);
+      expect(errors).toHaveLength(0);
+    });
+
+    test('no error when standardTools is imported and used in model', () => {
+      const ast = parse(`
+import { standardTools } from "system/tools"
+
+model m = {
+  name: "gpt-4",
+  apiKey: "key",
+  url: "https://api.openai.com",
+  tools: standardTools
+}
+`);
+      const errors = analyze(ast);
+      expect(errors).toHaveLength(0);
+    });
+
+    test('tool declaration is valid but calling it is not', () => {
+      const ast = parse(`
+tool double(n: number): number
+  @description "Double a number"
+{
+  ts(n) { return n * 2 }
+}
+
+// Just referencing the tool is fine (e.g., for model tools array)
+let toolRef = double
+
+// But calling it is not allowed
+let result = double(21)
+`);
+      const errors = analyze(ast);
+      expect(errors).toHaveLength(1);
+      expect(errors[0].message).toContain("Cannot call tool 'double' directly");
+    });
+  });
 });
