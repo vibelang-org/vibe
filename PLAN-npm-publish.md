@@ -101,11 +101,11 @@ child.on('close', (code) => {
   ],
   "repository": {
     "type": "git",
-    "url": "https://github.com/vibe-lang/vibe"
+    "url": "https://github.com/vibelang-org/vibe"
   },
-  "homepage": "https://github.com/vibe-lang/vibe",
+  "homepage": "https://github.com/vibelang-org/vibe",
   "bugs": {
-    "url": "https://github.com/vibe-lang/vibe/issues"
+    "url": "https://github.com/vibelang-org/vibe/issues"
   },
   "license": "MIT",
   "engines": {
@@ -184,11 +184,11 @@ const packageJson = {
   keywords: ['ai', 'agent', 'orchestration', 'dsl', 'language', 'vibe', 'llm'],
   repository: {
     type: 'git',
-    url: 'https://github.com/vibe-lang/vibe',
+    url: 'https://github.com/vibelang-org/vibe',
   },
-  homepage: 'https://github.com/vibe-lang/vibe',
+  homepage: 'https://github.com/vibelang-org/vibe',
   bugs: {
-    url: 'https://github.com/vibe-lang/vibe/issues',
+    url: 'https://github.com/vibelang-org/vibe/issues',
   },
   license: 'MIT',
   engines: {
