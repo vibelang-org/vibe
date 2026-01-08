@@ -7,6 +7,11 @@
 - [ ] Parallel AI calls
   - [ ] Auto-parallelize independent AI calls (no data dependencies)
   - [ ] Configurable concurrency limit
+- [ ] Structured multi-value AI returns
+  - [ ] `const ret = do "get x, y, z"` → `ret.x`, `ret.y`, `ret.z`
+  - [ ] Destructuring syntax: `const {x, y, z} = do "get x, y, z"`
+  - [ ] AI prompted to return JSON with requested fields
+  - [ ] Automatic parsing and validation
 
 ### Context Management Features
 - [ ] Context checkpoints beyond local/global
@@ -74,6 +79,11 @@
   - [ ] Step through execution
   - [ ] Variable inspection
   - [ ] Call stack visualization
+- [ ] Publish VSCode extension to marketplace
+  - [ ] Create publisher account on VS Marketplace
+  - [ ] Package extension with `vsce package`
+  - [ ] Publish with `vsce publish`
+  - [ ] Add marketplace badge to README
 
 ### Claude Code Plugin Distribution
 - [ ] Package symbol-tree as shareable plugin
