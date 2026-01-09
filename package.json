@@ -16,7 +16,7 @@
     "test:all": "bun test src/ tests/integration/ --timeout 120000",
     "prepublish": "bun run scripts/publish.ts",
     "publish:npm": "bun run scripts/publish.ts && cd dist/npm && npm publish --access public",
-    "reinstall": "bun run scripts/publish.ts && cd dist/npm && npm install -g ."
+    "reinstall": "bun run scripts/publish.ts && cd dist/npm && npm pack && npm install -g vibe-lang-vibe-0.1.0.tgz"
   },
   "keywords": ["ai", "agent", "orchestration", "dsl", "language"],
   "author": "",
