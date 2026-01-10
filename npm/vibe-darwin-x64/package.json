@@ -1,18 +1,18 @@
 {
-  "name": "@vibe-lang/vibe-windows-x64",
+  "name": "@vibe-lang/vibe-darwin-x64",
   "version": "0.1.8",
-  "description": "Vibe runtime binary for Windows x64",
+  "description": "Vibe CLI binary for macOS Intel",
   "os": [
-    "win32"
+    "darwin"
   ],
   "cpu": [
     "x64"
   ],
   "bin": {
-    "vibe": "bin/vibe.exe"
+    "vibe": "bin/vibe"
   },
   "files": [
-    "bin/vibe.exe"
+    "bin/vibe"
   ],
   "license": "MIT",
   "repository": {

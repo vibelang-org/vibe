@@ -32,6 +32,14 @@
   - [ ] Global config (`~/.vibe/settings.json`) and project config
   - [ ] CLI flags: `--yes-all`, `--safe-mode`
 
+### CLI Options
+- [ ] Add CLI options to vibe command
+  - [ ] `--verbose` / `-v` for verbose logging
+  - [ ] `--quiet` / `-q` for minimal output
+  - [ ] `--log-ai` to enable AI interaction logging
+  - [ ] `--version` to show version
+  - [ ] `--help` to show usage
+
 ### npm Publishing
 - [ ] Publish Vibe CLI to npm as `@vibe-lang/vibe` (PLAN: PLAN-npm-publish.md)
   - [x] Create publish script (`scripts/publish.ts`)

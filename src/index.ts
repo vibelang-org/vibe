@@ -1,3 +1,6 @@
+// Version (updated by publish script)
+export const VERSION = '0.1.8';
+
 // Re-export public API
 export { VibeLexer, tokenize, allTokens } from './lexer';
 export { vibeParser } from './parser';
@@ -56,17 +59,30 @@ async function main(): Promise<void> {
   // Handle upgrade/update command
   if (args[0] === 'upgrade' || args[0] === 'update') {
     console.log('Upgrading vibe to latest version...');
-    const proc = Bun.spawn(['npm', 'install', '-g', '@vibe-lang/vibe@latest'], {
-      stdout: 'inherit',
-      stderr: 'inherit',
-    });
-    const exitCode = await proc.exited;
-    process.exit(exitCode);
+    const isWindows = process.platform === 'win32';
+    if (isWindows) {
+      // On Windows, use 'start /b' to run npm in background without new window
+      // This allows vibe.exe to exit before npm tries to clean up
+      console.log('Running: npm install -g @vibe-lang/vibe@latest\n');
+      Bun.spawn(['cmd', '/c', 'start', '/b', 'npm', 'install', '-g', '@vibe-lang/vibe@latest'], {
+        stdout: 'inherit',
+        stderr: 'inherit',
+      });
+      process.exit(0);
+    } else {
+      // On Unix, just run npm directly and wait
+      const proc = Bun.spawn(['npm', 'install', '-g', '@vibe-lang/vibe@latest'], {
+        stdout: 'inherit',
+        stderr: 'inherit',
+      });
+      const exitCode = await proc.exited;
+      process.exit(exitCode);
+    }
   }
 
   // Handle version flag
   if (args.includes('--version') || args.includes('-v')) {
-    console.log('vibe 0.1.0');
+    console.log(`vibe ${VERSION}`);
     return;
   }
 
@@ -82,7 +98,7 @@ async function main(): Promise<void> {
     console.log('  upgrade, update   Update vibe to the latest version');
     console.log('');
     console.log('Options:');
-    console.log('  --log-ai    Show detailed AI interaction logs');
+    console.log('  --log-ai       Show detailed AI interaction logs');
     console.log('  -v, --version  Show version number');
     console.log('');
     console.log('Example program:');

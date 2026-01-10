@@ -1,13 +1,19 @@
 {
   "name": "@vibe-lang/vibe-linux-x64",
-  "version": "0.1.0",
-  "description": "Vibe CLI binary for Linux x64",
-  "os": ["linux"],
-  "cpu": ["x64"],
+  "version": "0.1.8",
+  "description": "Vibe runtime binary for Linux x64",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "x64"
+  ],
   "bin": {
     "vibe": "bin/vibe"
   },
-  "files": ["bin/vibe"],
+  "files": [
+    "bin/vibe"
+  ],
   "license": "MIT",
   "repository": {
     "type": "git",

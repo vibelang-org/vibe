@@ -8,6 +8,8 @@ const arch = process.arch;
 
 const platformMap = {
   'linux-x64': '@vibe-lang/vibe-linux-x64',
+  'darwin-arm64': '@vibe-lang/vibe-darwin-arm64',
+  'darwin-x64': '@vibe-lang/vibe-darwin-x64',
   'win32-x64': '@vibe-lang/vibe-windows-x64',
 };
 
