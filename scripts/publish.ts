@@ -1,103 +1,91 @@
 import { $ } from 'bun';
-import { writeFileSync, cpSync, mkdirSync, rmSync, existsSync } from 'fs';
+import { cpSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
 
 const version = process.argv[2] || '0.1.0';
-const distDir = 'dist/npm';
+const dryRun = process.argv.includes('--dry-run');
 
-console.log(`Preparing @vibe-lang/vibe v${version} for publishing...`);
+console.log(`Publishing @vibe-lang/vibe v${version}${dryRun ? ' (dry run)' : ''}...\n`);
 
-// 1. Clean and create dist directory
-if (existsSync(distDir)) {
-  rmSync(distDir, { recursive: true });
-}
-mkdirSync(distDir, { recursive: true });
+// 1. Build binaries for all platforms
+console.log('Step 1: Building binaries...');
+await $`bun run scripts/build.ts`;
 
-// 2. Copy source files (excluding test files and fixtures)
-cpSync('src', join(distDir, 'src'), {
-  recursive: true,
-  filter: (src) => {
-    const normalized = src.replace(/\\/g, '/');
-    return !normalized.includes('.test.') &&
-           !normalized.includes('/test/') &&
-           !normalized.includes('/test\\');
+// 2. Update version in all package.json files
+console.log('\nStep 2: Updating versions...');
+
+const packages = [
+  'npm/vibe/package.json',
+  'npm/vibe-linux-x64/package.json',
+  'npm/vibe-windows-x64/package.json',
+];
+
+for (const pkgPath of packages) {
+  const pkg = await Bun.file(pkgPath).json();
+  pkg.version = version;
+
+  // Update optionalDependencies versions in main package
+  if (pkg.optionalDependencies) {
+    for (const dep of Object.keys(pkg.optionalDependencies)) {
+      pkg.optionalDependencies[dep] = version;
+    }
   }
-});
-mkdirSync(join(distDir, 'bin'), { recursive: true });
 
-// 3. Create the CLI wrapper
-const cliWrapper = `#!/usr/bin/env node
-const { spawn } = require('child_process');
-const path = require('path');
+  await Bun.write(pkgPath, JSON.stringify(pkg, null, 2) + '\n');
+  console.log(`  ✓ ${pkgPath}`);
+}
 
-let bunPath;
-try {
-  bunPath = require.resolve('bun/bin/bun');
-} catch {
-  try {
-    bunPath = require.resolve('bun/bin/bun.exe');
-  } catch {
-    console.error('Error: Could not find bun binary. Please ensure bun is installed.');
+// 3. Copy binaries to platform packages
+console.log('\nStep 3: Copying binaries to packages...');
+
+const binaries = [
+  { src: 'dist/vibe-linux-x64', dest: 'npm/vibe-linux-x64/bin/vibe' },
+  { src: 'dist/vibe-windows-x64.exe', dest: 'npm/vibe-windows-x64/bin/vibe.exe' },
+];
+
+for (const { src, dest } of binaries) {
+  if (!existsSync(src)) {
+    console.error(`  ✗ Binary not found: ${src}`);
     process.exit(1);
   }
+  cpSync(src, dest);
+  console.log(`  ✓ ${src} -> ${dest}`);
 }
 
-const cliPath = path.join(__dirname, '..', 'src', 'index.ts');
-
-const child = spawn(bunPath, [cliPath, ...process.argv.slice(2)], {
-  stdio: 'inherit',
-  shell: process.platform === 'win32',
-});
-
-child.on('close', (code) => {
-  process.exit(code ?? 0);
-});
-`;
-
-writeFileSync(join(distDir, 'bin', 'vibe.js'), cliWrapper);
-
-// 4. Create package.json with correct version
-const packageJson = {
-  name: '@vibe-lang/vibe',
-  version,
-  description: 'AI agent orchestration language and runtime',
-  bin: {
-    vibe: 'bin/vibe.js',
-  },
-  files: ['bin/', 'src/', 'README.md'],
-  dependencies: {
-    '@anthropic-ai/sdk': '^0.71.2',
-    '@google/genai': '^1.34.0',
-    'bun': '^1.0.0',
-    'chevrotain': '^11.0.3',
-    'openai': '^6.15.0',
-    'typescript': '^5.0.0',
-  },
-  keywords: ['ai', 'agent', 'orchestration', 'dsl', 'language', 'vibe', 'llm'],
-  repository: {
-    type: 'git',
-    url: 'https://github.com/vibe-lang/vibe',
-  },
-  homepage: 'https://github.com/vibe-lang/vibe',
-  bugs: {
-    url: 'https://github.com/vibe-lang/vibe/issues',
-  },
-  license: 'MIT',
-  engines: {
-    node: '>=18',
-  },
-};
-
-writeFileSync(join(distDir, 'package.json'), JSON.stringify(packageJson, null, 2));
-
-// 5. Copy README
+// 4. Copy README to main package
+console.log('\nStep 4: Copying README...');
 if (existsSync('README.md')) {
-  cpSync('README.md', join(distDir, 'README.md'));
+  cpSync('README.md', 'npm/vibe/README.md');
+  console.log('  ✓ README.md -> npm/vibe/README.md');
 }
 
-console.log(`\n✓ Package prepared in ${distDir}/`);
-console.log('\nTo publish:');
-console.log(`  cd ${distDir} && npm publish --access public`);
-console.log('\nTo test locally:');
-console.log(`  cd ${distDir} && npm pack`);
-console.log(`  npm install -g vibe-lang-vibe-${version}.tgz`);
+// 5. Publish packages
+console.log('\nStep 5: Publishing packages...');
+
+const publishCmd = dryRun ? 'npm publish --access public --dry-run' : 'npm publish --access public';
+
+// Publish platform packages first
+for (const platform of ['linux-x64', 'windows-x64']) {
+  const pkgDir = `npm/vibe-${platform}`;
+  console.log(`\n  Publishing @vibe-lang/vibe-${platform}...`);
+
+  if (dryRun) {
+    await $`cd ${pkgDir} && npm publish --access public --dry-run`.quiet();
+  } else {
+    await $`cd ${pkgDir} && npm publish --access public`;
+  }
+  console.log(`  ✓ @vibe-lang/vibe-${platform}@${version}`);
+}
+
+// Publish main package
+console.log('\n  Publishing @vibe-lang/vibe...');
+if (dryRun) {
+  await $`cd npm/vibe && npm publish --access public --dry-run`.quiet();
+} else {
+  await $`cd npm/vibe && npm publish --access public`;
+}
+console.log(`  ✓ @vibe-lang/vibe@${version}`);
+
+console.log(`\n✓ All packages published${dryRun ? ' (dry run)' : ''}!`);
+console.log('\nTo install:');
+console.log('  npm install -g @vibe-lang/vibe');

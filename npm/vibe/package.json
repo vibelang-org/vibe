@@ -1,0 +1,29 @@
+{
+  "name": "@vibe-lang/vibe",
+  "version": "0.1.0",
+  "description": "AI agent orchestration language and runtime",
+  "bin": {
+    "vibe": "bin/vibe"
+  },
+  "files": ["bin/", "scripts/postinstall.js"],
+  "optionalDependencies": {
+    "@vibe-lang/vibe-linux-x64": "0.1.0",
+    "@vibe-lang/vibe-windows-x64": "0.1.0"
+  },
+  "scripts": {
+    "postinstall": "node scripts/postinstall.js"
+  },
+  "keywords": ["ai", "agent", "orchestration", "dsl", "language", "vibe", "llm"],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vibe-lang/vibe"
+  },
+  "homepage": "https://github.com/vibe-lang/vibe",
+  "bugs": {
+    "url": "https://github.com/vibe-lang/vibe/issues"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  }
+}
