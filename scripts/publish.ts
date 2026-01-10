@@ -29,6 +29,7 @@ console.log('\nStep 3: Updating package versions...');
 const packages = [
   'npm/vibe/package.json',
   'npm/vibe-linux-x64/package.json',
+  'npm/vibe-linux-arm64/package.json',
   'npm/vibe-darwin-arm64/package.json',
   'npm/vibe-darwin-x64/package.json',
   'npm/vibe-windows-x64/package.json',
@@ -54,6 +55,7 @@ console.log('\nStep 4: Copying binaries to packages...');
 
 const binaries = [
   { src: 'dist/vibe-linux-x64', dest: 'npm/vibe-linux-x64/bin/vibe' },
+  { src: 'dist/vibe-linux-arm64', dest: 'npm/vibe-linux-arm64/bin/vibe' },
   { src: 'dist/vibe-darwin-arm64', dest: 'npm/vibe-darwin-arm64/bin/vibe' },
   { src: 'dist/vibe-darwin-x64', dest: 'npm/vibe-darwin-x64/bin/vibe' },
   { src: 'dist/vibe-windows-x64.exe', dest: 'npm/vibe-windows-x64/bin/vibe.exe' },
@@ -75,32 +77,49 @@ if (existsSync('README.md')) {
   console.log('  ✓ README.md -> npm/vibe/README.md');
 }
 
-// 6. Publish packages
-console.log('\nStep 6: Publishing packages...');
+// 6. Publish packages (platform packages in parallel, then main package)
+console.log('\nStep 6: Publishing packages (parallel)...');
 
-const publishCmd = dryRun ? 'npm publish --access public --dry-run' : 'npm publish --access public';
+const platforms = ['linux-x64', 'linux-arm64', 'darwin-arm64', 'darwin-x64', 'windows-x64'];
 
-// Publish platform packages first
-for (const platform of ['linux-x64', 'darwin-arm64', 'darwin-x64', 'windows-x64']) {
-  const pkgDir = `npm/vibe-${platform}`;
-  console.log(`\n  Publishing @vibe-lang/vibe-${platform}...`);
+// Publish platform packages in parallel
+const publishStart = Date.now();
+const publishResults = await Promise.all(
+  platforms.map(async (platform) => {
+    const pkgDir = `npm/vibe-${platform}`;
+    try {
+      if (dryRun) {
+        await $`cd ${pkgDir} && npm publish --access public --dry-run`.quiet();
+      } else {
+        await $`cd ${pkgDir} && npm publish --access public`.quiet();
+      }
+      return { platform, success: true };
+    } catch (error) {
+      return { platform, success: false, error };
+    }
+  })
+);
 
-  if (dryRun) {
-    await $`cd ${pkgDir} && npm publish --access public --dry-run`.quiet();
+// Report platform results
+for (const result of publishResults) {
+  if (result.success) {
+    console.log(`  ✓ @vibe-lang/vibe-${result.platform}@${version}`);
   } else {
-    await $`cd ${pkgDir} && npm publish --access public`;
+    console.error(`  ✗ @vibe-lang/vibe-${result.platform} failed`);
   }
-  console.log(`  ✓ @vibe-lang/vibe-${platform}@${version}`);
 }
 
-// Publish main package
-console.log('\n  Publishing @vibe-lang/vibe...');
+// Publish main package (must wait for platform packages)
+console.log(`  Publishing @vibe-lang/vibe...`);
 if (dryRun) {
   await $`cd npm/vibe && npm publish --access public --dry-run`.quiet();
 } else {
-  await $`cd npm/vibe && npm publish --access public`;
+  await $`cd npm/vibe && npm publish --access public`.quiet();
 }
 console.log(`  ✓ @vibe-lang/vibe@${version}`);
+
+const publishTime = ((Date.now() - publishStart) / 1000).toFixed(1);
+console.log(`  Published 6 packages in ${publishTime}s`);
 
 console.log(`\n✓ All packages published${dryRun ? ' (dry run)' : ''}!`);
 console.log('\nTo install:');

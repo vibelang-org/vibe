@@ -1,6 +1,6 @@
 {
   "name": "@vibe-lang/vibe-linux-x64",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "description": "Vibe runtime binary for Linux x64",
   "os": [
     "linux"

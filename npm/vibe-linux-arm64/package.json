@@ -1,9 +1,9 @@
 {
-  "name": "@vibe-lang/vibe-darwin-arm64",
+  "name": "@vibe-lang/vibe-linux-arm64",
   "version": "0.1.9",
-  "description": "Vibe CLI binary for macOS Apple Silicon",
+  "description": "Vibe runtime binary for Linux ARM64",
   "os": [
-    "darwin"
+    "linux"
   ],
   "cpu": [
     "arm64"
