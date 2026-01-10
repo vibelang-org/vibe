@@ -40,12 +40,13 @@
   - [ ] `--version` to show version
   - [ ] `--help` to show usage
 
-### npm Publishing
-- [ ] Publish Vibe CLI to npm as `@vibe-lang/vibe` (PLAN: PLAN-npm-publish.md)
-  - [x] Create publish script (`scripts/publish.ts`)
-  - [ ] Test local install with `npm pack`
-  - [ ] Publish to npm registry
-  - [ ] Update README with installation instructions
+### Documentation
+- [ ] Create README for GitHub and npm
+  - [ ] Project overview and features
+  - [ ] Installation instructions (`npm install -g @vibe-lang/vibe`)
+  - [ ] Quick start example
+  - [ ] Language syntax guide
+  - [ ] CLI usage (`vibe`, `vibe upgrade`, `vibe --version`)
 
 ### Real-World Examples
 - [ ] Code review assistant (`examples/code-review.vibe`)
@@ -80,6 +81,14 @@
 - [ ] Package symbol-tree as shareable plugin
 
 ## Completed (Last 10)
+
+- [x] npm Publishing to `@vibe-lang/vibe`
+  - [x] Multi-platform support: Linux x64/ARM64, macOS x64/ARM64, Windows x64
+  - [x] Baseline builds for x64 (no AVX2 requirement)
+  - [x] Parallel builds and publishing
+  - [x] `vibe upgrade` / `vibe update` command
+  - [x] `vibe --version` flag
+  - [x] JavaScript wrapper for Windows compatibility
 
 - [x] Tool-based type returns (replacing structured outputs)
   - [x] Return tools for all typed returns: number, boolean, json, text[], number[], boolean[], json[]
